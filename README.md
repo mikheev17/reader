@@ -22,3 +22,65 @@
 3. Загрузка текста: txt / epub
 4. Обработка текста
 5. Перевод
+
+
+## Связи между сущностями
+
+### 1. User ↔ Balance
+- **Связь**: Один к одному
+- **Описание**: Каждый пользователь имеет один баланс
+- **Реализация**: `Balance._user_id` ссылается на `User._id`
+
+### 2. User ↔ TextDocument
+- **Связь**: Один ко многим
+- **Описание**: Пользователь может загрузить множество документов
+- **Реализация**: `TextDocument._user_id` ссылается на `User._id`
+
+### 3. TextDocument ↔ Task
+- **Связь**: Один к одному
+- **Описание**: На обработку документа может быть создана задача
+- **Реализация**: `Task._document_id` (опционально) ссылается на `TextDocument._id`
+
+### 4. User ↔ Transaction
+- **Связь**: Один ко многим
+- **Описание**: Пользователь может иметь множество транзакций
+- **Реализация**: `Transaction._user_id` ссылается на `User._id`
+
+### 5. Task ↔ Prediction
+- **Связь**: Один к одному
+- **Описание**: По одной задаче возможно одно решение (предсказание)
+- **Реализация**: `Prediction._task_id` ссылается на `Task._id`
+
+
+## Поток работы системы
+
+### 1. Регистрация пользователя
+```
+User (создание) → User.validate() → Balance (создание с начальным балансом 0)
+```
+
+### 2. Загрузка документа
+```
+User → TextDocument (создание) → TextDocument.validate() → сохранение
+```
+
+### 3. Создание задачи обработки
+```
+User → Task (создание с document_id) → Task.validate() → проверка Balance.has_sufficient_balance() → Transaction (списание) → Balance.withdraw()
+```
+
+### 4. Выполнение задачи
+```
+Task → Task.set_status(PROCESSING) → обработка → Task.set_result() → Task.set_status(COMPLETED) → Prediction (создание из task.result)
+```
+
+### 5. Пополнение баланса
+```
+User → Transaction (REPLENISHMENT) → Transaction.validate() → Balance.replenish()
+```
+
+### 6. Обработка ошибки задачи
+```
+Task → Task.set_error() → Task.set_status(FAILED)
+Примечание: Транзакция уже создана при отправке задачи, средства уже списаны
+```

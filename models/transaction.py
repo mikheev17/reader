@@ -27,6 +27,7 @@ class Transaction(BaseEntity, Validatable):
         user_id: str,
         transaction_type: TransactionType,
         amount: Decimal,
+        task_id: Optional[str] = None,
     ):
         """
         Инициализация транзакции.
@@ -35,11 +36,13 @@ class Transaction(BaseEntity, Validatable):
             user_id: ID пользователя
             transaction_type: Тип транзакции
             amount: Сумма транзакции
+            task_id: ID задачи, связанной с транзакцией (опционально, для списаний)
         """
         super().__init__()
         self._user_id: str = user_id
         self._transaction_type: TransactionType = transaction_type
         self._amount: Decimal = amount
+        self._task_id: Optional[str] = task_id
 
     @property
     def user_id(self) -> str:
@@ -71,6 +74,15 @@ class Transaction(BaseEntity, Validatable):
         """
         return self._amount
     
+    @property
+    def task_id(self) -> Optional[str]:
+        """
+        Получить ID задачи, связанной с транзакцией.
+        
+        Returns:
+            Optional[str]: ID задачи или None
+        """
+        return self._task_id
 
     def validate(self) -> ValidationResult:
         """
@@ -101,6 +113,7 @@ class Transaction(BaseEntity, Validatable):
             'user_id': self._user_id,
             'transaction_type': self._transaction_type.value,
             'amount': float(self._amount),
+            'task_id': self._task_id,
             'created_at': self._created_at.isoformat(),
             'updated_at': self._updated_at.isoformat()
         }

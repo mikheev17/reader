@@ -115,7 +115,6 @@ class TextDocument(BaseEntity, Validatable):
     def validate(self) -> ValidationResult:
         """
         Валидировать документ.
-        Реализация абстрактного метода из Validatable.
         
         Returns:
             ValidationResult: Результат валидации
