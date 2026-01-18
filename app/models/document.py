@@ -4,8 +4,8 @@
 
 from enum import Enum
 from typing import Optional
-from base import BaseEntity, Validatable
-from validation import ValidationResult, ValidationError
+from .base import BaseEntity, Validatable
+from .validation import ValidationResult, ValidationError
 
 
 class DocumentType(Enum):

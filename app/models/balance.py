@@ -3,8 +3,8 @@
 """
 
 from decimal import Decimal
-from base import BaseEntity, Validatable
-from validation import ValidationResult, ValidationError
+from .base import BaseEntity, Validatable
+from .validation import ValidationResult, ValidationError
 
 
 class Balance(BaseEntity, Validatable):
