@@ -10,7 +10,7 @@ services:
     volumes:
       - ./app:/app
     depends_on:
-      - postgres
+      - database
       - rabbitmq
     networks:
       - reader-network
@@ -46,7 +46,7 @@ services:
       - ./data/rabbitmq:/var/lib/rabbitmq
     networks:
       - reader-network
-  postgres:
+  database:
     image: postgres:17
     container_name: postgres
     ports:
