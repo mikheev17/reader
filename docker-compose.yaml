@@ -2,7 +2,7 @@ version: "3.8"
 services: 
   app:
     build: ./app/
-    image: reader-api:latest
+    image: reader-api:1.0.0
     container_name: reader-api
     restart: unless-stopped
     env_file:
@@ -21,7 +21,7 @@ services:
       retries: 3
       start_period: 20s
   web-proxy:
-    image: nginx:latest
+    image: nginx:1.29.4-alpine
     container_name: reader-nginx
     restart: unless-stopped
     ports:
@@ -36,14 +36,14 @@ services:
     networks:
       - reader-network
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4.1.7-management-alpine
     container_name: rabbitmq
     restart: on-failure
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
-      - ./data/rabbitmq:/var/lib/rabbitmq
+      - rabbitmq_volume:/var/lib/rabbitmq
     networks:
       - reader-network
   database:
@@ -56,9 +56,13 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres_volume:/var/lib/postgresql/data
     networks:
       - reader-network
+
+volumes:
+  rabbitmq_volume:
+  postgres_volume:
 
 networks:
   reader-network:
