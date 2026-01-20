@@ -5,8 +5,8 @@
 from decimal import Decimal
 from enum import Enum
 from typing import Optional, Any
-from base import BaseEntity, Validatable
-from validation import ValidationResult, ValidationError
+from .base import BaseEntity, Validatable
+from .validation import ValidationResult, ValidationError
 
 
 class TransactionType(Enum):
