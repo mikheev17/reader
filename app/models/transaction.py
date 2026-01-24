@@ -4,12 +4,17 @@
 
 from decimal import Decimal
 from enum import Enum
-from typing import Optional, Any
-from .base import BaseEntity, Validatable
+from typing import Optional
+from uuid import UUID
+
+from sqlalchemy import DECIMAL
+from sqlmodel import Field, Column
+
+from .base import BaseSQLModel, Validatable
 from .validation import ValidationResult, ValidationError
 
 
-class TransactionType(Enum):
+class TransactionType(str, Enum):
     """
     Типы транзакций.
     """
@@ -17,72 +22,16 @@ class TransactionType(Enum):
     WITHDRAWAL = "withdrawal"  # Списание за использование ML сервиса
 
 
-class Transaction(BaseEntity, Validatable):
+class Transaction(BaseSQLModel, Validatable, table=True):
     """
-    Класс транзакции (пополнение или списание баланса).
+    Класс транзакции (пополнение или списание баланса) (SQLModel).
     """
+    __tablename__ = "transactions"
     
-    def __init__(
-        self,
-        user_id: str,
-        transaction_type: TransactionType,
-        amount: Decimal,
-        task_id: Optional[str] = None,
-    ):
-        """
-        Инициализация транзакции.
-        
-        Args:
-            user_id: ID пользователя
-            transaction_type: Тип транзакции
-            amount: Сумма транзакции
-            task_id: ID задачи, связанной с транзакцией (опционально, для списаний)
-        """
-        super().__init__()
-        self._user_id: str = user_id
-        self._transaction_type: TransactionType = transaction_type
-        self._amount: Decimal = amount
-        self._task_id: Optional[str] = task_id
-
-    @property
-    def user_id(self) -> str:
-        """
-        Получить ID пользователя.
-        
-        Returns:
-            str: ID пользователя
-        """
-        return self._user_id
-    
-    @property
-    def transaction_type(self) -> TransactionType:
-        """
-        Получить тип транзакции.
-        
-        Returns:
-            TransactionType: Тип транзакции
-        """
-        return self._transaction_type
-    
-    @property
-    def amount(self) -> Decimal:
-        """
-        Получить сумму транзакции.
-        
-        Returns:
-            Decimal: Сумма транзакции
-        """
-        return self._amount
-    
-    @property
-    def task_id(self) -> Optional[str]:
-        """
-        Получить ID задачи, связанной с транзакцией.
-        
-        Returns:
-            Optional[str]: ID задачи или None
-        """
-        return self._task_id
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    transaction_type: TransactionType
+    amount: Decimal = Field(sa_column=Column(DECIMAL(10, 2)))
+    task_id: Optional[UUID] = Field(default=None, foreign_key="tasks.id")
 
     def validate(self) -> ValidationResult:
         """
@@ -93,10 +42,10 @@ class Transaction(BaseEntity, Validatable):
         """
         errors = []
         
-        if not self._user_id:
+        if not self.user_id:
             errors.append(ValidationError("user_id", "ID пользователя не может быть пустым"))
         
-        if self._amount <= 0:
+        if self.amount <= 0:
             errors.append(ValidationError("amount", "Сумма транзакции должна быть положительной"))
         
         return ValidationResult(is_valid=len(errors) == 0, errors=errors)
@@ -109,11 +58,11 @@ class Transaction(BaseEntity, Validatable):
             dict: Словарь с данными транзакции
         """
         return {
-            'id': self._id,
-            'user_id': self._user_id,
-            'transaction_type': self._transaction_type.value,
-            'amount': float(self._amount),
-            'task_id': self._task_id,
-            'created_at': self._created_at.isoformat(),
-            'updated_at': self._updated_at.isoformat()
+            'id': str(self.id),
+            'user_id': str(self.user_id),
+            'transaction_type': self.transaction_type.value if isinstance(self.transaction_type, Enum) else self.transaction_type,
+            'amount': float(self.amount),
+            'task_id': str(self.task_id) if self.task_id else None,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }
