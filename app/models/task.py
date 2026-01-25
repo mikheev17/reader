@@ -136,7 +136,7 @@ class Prediction(BaseSQLModel, Validatable, table=True):
         return {
             'id': str(self.id),
             'task_id': str(self.task_id),
-            'has_prediction_data': self.prediction_data is not None,
+            'prediction_data': self.prediction_data,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }

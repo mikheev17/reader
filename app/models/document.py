@@ -4,6 +4,7 @@
 
 from enum import Enum
 from typing import Optional
+from datetime import datetime
 from sqlmodel import Field, Column, Text
 from uuid import UUID
 from .base import BaseSQLModel, Validatable
@@ -29,6 +30,7 @@ class TextDocument(BaseSQLModel, Validatable, table=True):
     content: str = Field(sa_column=Column(Text))
     filename: Optional[str] = None
     is_processed: bool = Field(default=False)
+    deleted_at: Optional[datetime] = Field(default=None)
     
     def mark_as_processed(self) -> None:
         """
@@ -36,6 +38,22 @@ class TextDocument(BaseSQLModel, Validatable, table=True):
         """
         self.is_processed = True
         self._update_timestamp()
+    
+    def soft_delete(self) -> None:
+        """
+        Выполнить мягкое удаление документа.
+        """
+        self.deleted_at = datetime.now()
+        self._update_timestamp()
+    
+    def is_deleted(self) -> bool:
+        """
+        Проверить, удален ли документ.
+        
+        Returns:
+            bool: True если документ удален
+        """
+        return self.deleted_at is not None
     
     def validate(self) -> ValidationResult:
         """

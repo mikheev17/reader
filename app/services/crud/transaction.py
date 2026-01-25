@@ -20,30 +20,12 @@ def get_transactions_by_user_id(user_id: UUID, session: Session) -> List[Transac
     return session.exec(statement).all()
 
 
-def get_transactions_by_task_id(task_id: UUID, session: Session) -> List[Transaction]:
-    statement = select(Transaction).where(Transaction.task_id == task_id)
-    return session.exec(statement).all()
-
-
 def create_transaction(transaction: Transaction, session: Session) -> Transaction:
     try:
         session.add(transaction)
         session.commit()
         session.refresh(transaction)
         return transaction
-    except Exception:
-        session.rollback()
-        raise
-
-
-def delete_transaction(transaction_id: UUID, session: Session) -> bool:
-    try:
-        tx = session.get(Transaction, transaction_id)
-        if tx:
-            session.delete(tx)
-            session.commit()
-            return True
-        return False
     except Exception:
         session.rollback()
         raise

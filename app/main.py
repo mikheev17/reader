@@ -6,8 +6,8 @@ from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlmodel import Session, select
 
+from test_system_smoke import test
 from database.database import get_session, init_standard_data
-from database.database import init_db
 from models.user import User
 
 # Настройка логирования
@@ -74,7 +74,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 if __name__ == '__main__':
     try:
         init_standard_data()
-
+        test()
         logger.info("База данных инициализирована")
     except Exception as e:
         logger.error(f"Ошибка при инициализации базы данных: {e}")

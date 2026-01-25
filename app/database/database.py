@@ -259,17 +259,21 @@ def init_standard_data():
             Prediction(
                 task_id=tasks[0].id,
                 prediction_data={
-                    "words_count": 15,
-                    "difficulty": "A2",
-                    "key_phrases": ["sample", "text", "document"]
+                    "phrases": [
+                        {"english": "This is a sample text document", "russian": "Это пример текстового документа"},
+                        {"english": "for testing purposes", "russian": "для целей тестирования"},
+                        {"english": "It contains some English text", "russian": "Он содержит некоторый английский текст"}
+                    ]
                 }
             ),
             Prediction(
                 task_id=tasks[2].id,
                 prediction_data={
-                    "words_count": 25,
-                    "difficulty": "B1",
-                    "key_phrases": ["epub", "document", "content", "structured"]
+                    "phrases": [
+                        {"english": "EPUB document content here", "russian": "Содержимое документа EPUB здесь"},
+                        {"english": "This is a longer document", "russian": "Это более длинный документ"},
+                        {"english": "with structured content", "russian": "со структурированным содержимым"}
+                    ]
                 }
             ),
         ]
