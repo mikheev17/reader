@@ -103,10 +103,10 @@ def test() -> None:
 
         # 6) Получение предсказания (завершение задачи)
         prediction_data = {
-            "difficulty_level": "B1",
-            "vocabulary_complexity": 0.75,
-            "reading_time_minutes": 5,
-            "key_words": ["test", "document", "smoke", "testing"]
+            "phrases": [
+                {"english": "smoke testing", "russian": "Смоук-тестирование"},
+                {"english": "contains", "russian": "содержит"}
+            ]
         }
         prediction = complete_task_with_prediction(task.id, prediction_data, session)
         assert prediction is not None, "Предсказание должно быть создано успешно"
