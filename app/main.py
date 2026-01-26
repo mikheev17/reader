@@ -11,6 +11,9 @@ from test_system_smoke import test
 from database.database import get_session
 from init_standard_data import init_data
 from models.user import User
+from routers import user as user_router
+from routers import task as task_router
+from routers import balance as balance_router
 
 # Настройка логирования
 logging.basicConfig(
@@ -40,6 +43,11 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Регистрация роутеров
+app.include_router(user_router.user_route, tags=["users"])
+app.include_router(task_router.task_route, tags=["tasks"])
+app.include_router(balance_router.balance_route, tags=["balance"])
 
 @app.get("/", response_model=Dict[str, str])
 async def index(session: Session = Depends(get_session)) -> Dict[str, str]:
