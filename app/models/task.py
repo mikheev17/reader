@@ -4,11 +4,13 @@
 
 from enum import Enum
 from typing import Optional, Any
-from .base import BaseEntity, Validatable
+from sqlmodel import Field, Column, JSON
+from uuid import UUID
+from .base import BaseSQLModel, Validatable
 from .validation import ValidationResult, ValidationError
 
 
-class TaskStatus(Enum):
+class TaskStatus(str, Enum):
     """
     Статусы выполнения задачи ML модели.
     """
@@ -17,58 +19,17 @@ class TaskStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
 
-class Task(BaseEntity, Validatable):
+
+class Task(BaseSQLModel, Validatable, table=True):
     """
-    Класс задачи для ML модели.
+    Класс задачи для ML модели (SQLModel).
     """
+    __tablename__ = "tasks"
     
-    def __init__(
-        self,
-        user_id: str,
-        document_id: Optional[str] = None
-    ):
-        """
-        Инициализация задачи.
-        
-        Args:
-            user_id: ID пользователя, создавшего задачу
-            document_id: ID документа (опционально)
-        """
-        super().__init__()
-        self._user_id: str = user_id
-        self._document_id: Optional[str] = document_id
-        self._status: TaskStatus = TaskStatus.PENDING
-        self._error_message: Optional[str] = None
-    
-    @property
-    def user_id(self) -> str:
-        """
-        Получить ID пользователя.
-        
-        Returns:
-            str: ID пользователя
-        """
-        return self._user_id
-    
-    @property
-    def document_id(self) -> Optional[str]:
-        """
-        Получить ID документа.
-        
-        Returns:
-            Optional[str]: ID документа или None
-        """
-        return self._document_id
-    
-    @property
-    def status(self) -> TaskStatus:
-        """
-        Получить статус задачи.
-        
-        Returns:
-            TaskStatus: Статус задачи
-        """
-        return self._status
+    user_id: UUID = Field(foreign_key="users.id", index=True)
+    document_id: Optional[UUID] = Field(default=None, foreign_key="text_documents.id")
+    status: TaskStatus = Field(default=TaskStatus.PENDING)
+    error_message: Optional[str] = None
     
     def set_status(self, status: TaskStatus) -> None:
         """
@@ -77,19 +38,9 @@ class Task(BaseEntity, Validatable):
         Args:
             status: Новый статус
         """
-        self._status = status
+        self.status = status
         self._update_timestamp()
 
-    @property
-    def error_message(self) -> Optional[str]:
-        """
-        Получить сообщение об ошибке.
-        
-        Returns:
-            Optional[str]: Сообщение об ошибке или None
-        """
-        return self._error_message
-    
     def set_error(self, error_message: str) -> None:
         """
         Установить ошибку выполнения задачи.
@@ -97,8 +48,8 @@ class Task(BaseEntity, Validatable):
         Args:
             error_message: Сообщение об ошибке
         """
-        self._error_message = error_message
-        self._status = TaskStatus.FAILED
+        self.error_message = error_message
+        self.status = TaskStatus.FAILED
         self._update_timestamp()
     
     def is_completed(self) -> bool:
@@ -108,7 +59,7 @@ class Task(BaseEntity, Validatable):
         Returns:
             bool: True если задача завершена
         """
-        return self._status == TaskStatus.COMPLETED
+        return self.status == TaskStatus.COMPLETED
     
     def is_failed(self) -> bool:
         """
@@ -117,7 +68,7 @@ class Task(BaseEntity, Validatable):
         Returns:
             bool: True если задача завершилась с ошибкой
         """
-        return self._status == TaskStatus.FAILED
+        return self.status == TaskStatus.FAILED
     
     def validate(self) -> ValidationResult:
         """
@@ -128,7 +79,7 @@ class Task(BaseEntity, Validatable):
         """
         errors = []
         
-        if not self._user_id:
+        if not self.user_id:
             errors.append(ValidationError("user_id", "ID пользователя не может быть пустым"))
         
         return ValidationResult(is_valid=len(errors) == 0, errors=errors)
@@ -141,83 +92,51 @@ class Task(BaseEntity, Validatable):
             dict: Словарь с данными задачи
         """
         return {
-            'id': self._id,
-            'user_id': self._user_id,
-            'document_id': self._document_id,
-            'status': self._status.value,
-            'error_message': self._error_message,
-            'created_at': self._created_at.isoformat(),
-            'updated_at': self._updated_at.isoformat()
+            'id': str(self.id),
+            'user_id': str(self.user_id),
+            'document_id': str(self.document_id) if self.document_id else None,
+            'status': self.status.value if isinstance(self.status, Enum) else self.status,
+            'error_message': self.error_message,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }
 
-class Prediction(BaseEntity, Validatable):
+
+class Prediction(BaseSQLModel, Validatable, table=True):
     """
-    Класс предсказания/результата работы ML модели.
+    Класс предсказания/результата работы ML модели (SQLModel).
     """
-
-    def __init__(
-            self,
-            task_id: str,
-            prediction_data: Any,
-    ):
-        """
-        Инициализация предсказания.
-
-        Args:
-            task_id: ID задачи, которая создала предсказание
-            prediction_data: Данные предсказания
-        """
-        super().__init__()
-        self._task_id: str = task_id
-        self._prediction_data: Any = prediction_data
-
-
-    @property
-    def task_id(self) -> str:
-        """
-        Получить ID задачи.
-
-        Returns:
-            str: ID задачи
-        """
-        return self._task_id
-
-    @property
-    def prediction_data(self) -> Any:
-        """
-        Получить данные предсказания.
-
-        Returns:
-            Any: Данные предсказания
-        """
-        return self._prediction_data
+    __tablename__ = "predictions"
+    
+    task_id: UUID = Field(foreign_key="tasks.id", index=True)
+    prediction_data: Optional[Any] = Field(default=None, sa_column=Column(JSON))
 
     def validate(self) -> ValidationResult:
         """
         Валидировать предсказание.
         Реализация абстрактного метода из Validatable.
-
+        
         Returns:
             ValidationResult: Результат валидации
         """
         errors = []
-
-        if not self._task_id:
+        
+        if not self.task_id:
             errors.append(ValidationError("task_id", "ID задачи не может быть пустым"))
-
+        
         return ValidationResult(is_valid=len(errors) == 0, errors=errors)
-
+    
     def to_dict(self) -> dict:
         """
         Преобразовать предсказание в словарь.
-
+        
         Returns:
             dict: Словарь с данными предсказания
         """
         return {
-            'id': self._id,
-            'task_id': self._task_id,
-            'has_prediction_data': self._prediction_data is not None,
-            'created_at': self._created_at.isoformat(),
-            'updated_at': self._updated_at.isoformat()
+            'id': str(self.id),
+            'task_id': str(self.task_id),
+            'prediction_data': self.prediction_data,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }

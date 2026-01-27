@@ -4,11 +4,14 @@
 
 from enum import Enum
 from typing import Optional
-from .base import BaseEntity, Validatable
+
+from sqlmodel import Field
+
+from .base import Validatable, BaseSQLModel
 from .validation import ValidationResult, ValidationError
 
 
-class UserRole(Enum):
+class UserRole(str, Enum):
     """
     Роли пользователей.
     """
@@ -16,151 +19,31 @@ class UserRole(Enum):
     ADMIN = "admin"
 
 
-class User(BaseEntity, Validatable):
+class User(BaseSQLModel, Validatable, table=True):
     """
-    Класс пользователя.
+    Класс пользователя (SQLModel).
     """
+    __tablename__ = "users"
     
-    def __init__(
-        self,
-        email: str,
-        password_hash: str,
-        username: Optional[str] = None,
-        english_level: Optional[str] = None
-    ):
-        """
-        Инициализация пользователя.
-        
-        Args:
-            email: Email пользователя
-            password_hash: Хеш пароля
-            username: Имя пользователя (опционально)
-            english_level: Уровень английского языка (A1-B2, опционально)
-        """
-        super().__init__()
-        self._email: str = email
-        self._password_hash: str = password_hash
-        self._username: Optional[str] = username
-        self._english_level: Optional[str] = english_level
-        self._role: UserRole = UserRole.USER
-        self._is_active: bool = True
-    
-    @property
-    def email(self) -> str:
-        """
-        Получить email пользователя.
-        
-        Returns:
-            str: Email пользователя
-        """
-        return self._email
-    
-    @email.setter
-    def email(self, value: str) -> None:
-        """
-        Установить email пользователя.
-        
-        Args:
-            value: Новый email
-        """
-        self._email = value
-        self._update_timestamp()
-    
-    @property
-    def password_hash(self) -> str:
-        """
-        Получить хеш пароля.
-        
-        Returns:
-            str: Хеш пароля
-        """
-        return self._password_hash
-    
-    @password_hash.setter
-    def password_hash(self, value: str) -> None:
-        """
-        Установить хеш пароля.
-        
-        Args:
-            value: Новый хеш пароля
-        """
-        self._password_hash = value
-        self._update_timestamp()
-    
-    @property
-    def username(self) -> Optional[str]:
-        """
-        Получить имя пользователя.
-        
-        Returns:
-            Optional[str]: Имя пользователя или None
-        """
-        return self._username
-    
-    @username.setter
-    def username(self, value: Optional[str]) -> None:
-        """
-        Установить имя пользователя.
-        
-        Args:
-            value: Новое имя пользователя
-        """
-        self._username = value
-        self._update_timestamp()
-    
-    @property
-    def english_level(self) -> Optional[str]:
-        """
-        Получить уровень английского языка.
-        
-        Returns:
-            Optional[str]: Уровень английского (A1-B2) или None
-        """
-        return self._english_level
-    
-    @english_level.setter
-    def english_level(self, value: Optional[str]) -> None:
-        """
-        Установить уровень английского языка.
-        
-        Args:
-            value: Уровень английского (A1-B2) или None
-        """
-        self._english_level = value
-        self._update_timestamp()
-    
-    @property
-    def role(self) -> UserRole:
-        """
-        Получить роль пользователя.
-        
-        Returns:
-            UserRole: Роль пользователя
-        """
-        return self._role
-    
-    @property
-    def is_active(self) -> bool:
-        """
-        Проверить, активен ли пользователь.
-        
-        Returns:
-            bool: True если пользователь активен
-        """
-        return self._is_active
+    email: str = Field(unique=True, index=True)
+    password_hash: str
+    username: Optional[str] = None
+    english_level: Optional[str] = None
+    role: UserRole = Field(default=UserRole.USER)
+    is_active: bool = Field(default=True)
     
     def activate(self) -> None:
         """
         Активировать пользователя.
         """
-        self._is_active = True
+        self.is_active = True
         self._update_timestamp()
     
     def deactivate(self) -> None:
         """
         Деактивировать пользователя.
         """
-        self._is_active = False
+        self.is_active = False
         self._update_timestamp()
     
     def validate(self) -> ValidationResult:
@@ -173,13 +56,13 @@ class User(BaseEntity, Validatable):
         """
         errors = []
         
-        if not self._email or '@' not in self._email:
+        if not self.email or '@' not in self.email:
             errors.append(ValidationError("email", "Некорректный email"))
         
-        if not self._password_hash:
+        if not self.password_hash:
             errors.append(ValidationError("password_hash", "Пароль не может быть пустым"))
         
-        if self._english_level and self._english_level not in ['A1', 'A2', 'B1', 'B2']:
+        if self.english_level and self.english_level not in ['A1', 'A2', 'B1', 'B2']:
             errors.append(ValidationError("english_level", "Уровень английского должен быть A1, A2, B1 или B2"))
         
         return ValidationResult(is_valid=len(errors) == 0, errors=errors)
@@ -192,12 +75,12 @@ class User(BaseEntity, Validatable):
             dict: Словарь с данными пользователя
         """
         return {
-            'id': self._id,
-            'email': self._email,
-            'username': self._username,
-            'english_level': self._english_level,
-            'role': self._role.value,
-            'is_active': self._is_active,
-            'created_at': self._created_at.isoformat(),
-            'updated_at': self._updated_at.isoformat()
+            'id': str(self.id),
+            'email': self.email,
+            'username': self.username,
+            'english_level': self.english_level,
+            'role': self.role.value if isinstance(self.role, Enum) else self.role,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat()
         }

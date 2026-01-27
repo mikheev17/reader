@@ -4,55 +4,9 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from uuid import uuid4
-
-
-class BaseEntity(ABC):
-    """
-    Базовый абстрактный класс для всех сущностей системы.
-    Реализует общую функциональность: ID, дата создания, дата обновления.
-    """
-    
-    def __init__(self):
-        self._id: str = str(uuid4())
-        self._created_at: datetime = datetime.now()
-        self._updated_at: datetime = datetime.now()
-    
-    @property
-    def id(self) -> str:
-        """
-        Получить уникальный идентификатор сущности.
-        
-        Returns:
-            str: Уникальный идентификатор
-        """
-        return self._id
-    
-    @property
-    def created_at(self) -> datetime:
-        """
-        Получить дату создания сущности.
-        
-        Returns:
-            datetime: Дата создания
-        """
-        return self._created_at
-    
-    @property
-    def updated_at(self) -> datetime:
-        """
-        Получить дату последнего обновления сущности.
-        
-        Returns:
-            datetime: Дата обновления
-        """
-        return self._updated_at
-    
-    def _update_timestamp(self) -> None:
-        """
-        Обновить метку времени последнего изменения.
-        """
-        self._updated_at = datetime.now()
+from uuid import uuid4, UUID
+from sqlmodel import SQLModel, Field
+from typing import Optional
 
 
 class Validatable(ABC):
@@ -69,3 +23,19 @@ class Validatable(ABC):
             ValidationResult: Результат валидации
         """
         pass
+
+
+class BaseSQLModel(SQLModel):
+    """
+    Базовая SQLModel для всех сущностей системы.
+    Реализует общую функциональность: ID, дата создания, дата обновления.
+    """
+    id: Optional[UUID] = Field(default_factory=uuid4, primary_key=True)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    
+    def _update_timestamp(self) -> None:
+        """
+        Обновить метку времени последнего изменения.
+        """
+        self.updated_at = datetime.now()
