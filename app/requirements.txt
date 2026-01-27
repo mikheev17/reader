@@ -1,6 +1,7 @@
 SQLAlchemy==2.0.31
 sqlmodel==0.0.21
 fastapi
+python-multipart==0.0.9
 uvicorn==0.30.1
 pydantic-settings==2.1.0
 email-validator==2.1.0

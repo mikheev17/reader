@@ -10,9 +10,7 @@ from sqlmodel import Session
 
 from models.task import Task, TaskStatus
 from models.transaction import Transaction, TransactionType
-from services.crud.balance import get_balance_by_user_id, withdraw_balance
-from services.crud.task import create_task
-from services.crud.transaction import create_transaction
+from services.crud.balance import get_balance_by_user_id
 
 
 # Фиксированная стоимость создания задачи
@@ -27,12 +25,9 @@ def create_task_with_balance_deduction(
 ) -> Optional[Task]:
     """
     Создать задачу с автоматическим списанием фиксированной суммы с баланса.
-    
-    Эта функция объединяет несколько операций:
-    - Проверка баланса пользователя
-    - Списание фиксированной суммы с баланса
-    - Создание задачи на обработку
-    - Создание транзакции на списание
+
+    Все операции (списание баланса, создание задачи, создание транзакции)
+    выполняются в одной транзакции БД — при любой ошибке откатывается всё.
     
     Args:
         user_id: ID пользователя
@@ -45,34 +40,33 @@ def create_task_with_balance_deduction(
     """
     if task_cost is None:
         task_cost = TASK_CREATION_COST
-    
+
+    balance = get_balance_by_user_id(user_id, session)
+    if not balance or not balance.has_sufficient_balance(task_cost):
+        return None
+
     try:
-        # Проверяем наличие баланса
-        balance = get_balance_by_user_id(user_id, session)
-        if not balance:
-            return None
-        
-        # Проверяем и списываем баланс
-        if not withdraw_balance(user_id, task_cost, session):
-            return None
-        
-        # Создаем задачу
+        balance.withdraw(task_cost)
+        session.add(balance)
+
         task = Task(
             user_id=user_id,
             document_id=document_id,
             status=TaskStatus.PENDING
         )
-        task = create_task(task, session)
-        
-        # Создаем транзакцию на списание и связываем с задачей
+        session.add(task)
+        session.flush()
+
         transaction = Transaction(
             user_id=user_id,
             transaction_type=TransactionType.WITHDRAWAL,
             amount=task_cost,
             task_id=task.id
         )
-        create_transaction(transaction, session)
-        
+        session.add(transaction)
+
+        session.commit()
+        session.refresh(task)
         return task
     except Exception:
         session.rollback()
