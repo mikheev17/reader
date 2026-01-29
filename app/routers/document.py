@@ -2,17 +2,18 @@
 Роутер для работы с документами.
 """
 
-import re
-from uuid import UUID
-from typing import Optional
 import logging
+import re
+from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status, Depends, File, Form, UploadFile
 from database.database import get_session
+from dto import CreateDocumentResponse, DocumentResponse
+from fastapi import APIRouter, HTTPException, status, Depends, File, Form, UploadFile
 from models import TextDocument, DocumentType
+from models import User
+from services.auth.auth import get_current_user
 from services.crud.document import create_document as crud_create_document
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
-from dto import CreateDocumentResponse, DocumentResponse
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +49,12 @@ def _document_type_from_filename(filename: Optional[str]) -> DocumentType:
 )
 async def create_document(
     session=Depends(get_session),
+    current_user: User = Depends(get_current_user),
     file: UploadFile = File(..., description="Файл документа (бинарная отправка)"),
-    user_id: str = Form(..., description="UUID пользователя"),
     document_type: Optional[str] = Form(None, description="Тип документа: txt или epub (опционально, по умолчанию из расширения файла)"),
 ) -> CreateDocumentResponse:
     """
-    Создать документ и задачу для его обработки.
+    Создать документ и задачу для его обработки. Требуется JWT. user_id берётся из токена.
 
     Документ передаётся бинарно (файл). При сохранении из содержимого извлекаются
     только латинские символы (и допустимая пунктуация/пробелы) и записываются в поле content.
@@ -62,8 +63,8 @@ async def create_document(
 
     Args:
         session: Сессия БД
+        current_user: Текущий пользователь (из JWT)
         file: Загружаемый файл (бинарно)
-        user_id: UUID пользователя
         document_type: txt или epub (если не задано — определяется по расширению файла)
 
     Returns:
@@ -72,13 +73,7 @@ async def create_document(
     Raises:
         HTTPException: При неверном типе документа или недостатке средств
     """
-    try:
-        uid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Некорректный user_id (ожидается UUID)",
-        )
+    uid = current_user.id
 
     if document_type is not None:
         try:

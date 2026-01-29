@@ -5,11 +5,11 @@
 
 from typing import Optional
 from uuid import UUID
-from sqlmodel import Session
 
 from models.task import Task
 from services.crud.document import get_document_by_id
 from services.task_service import create_task_with_balance_deduction
+from sqlmodel import Session
 
 
 def send_document_for_processing(document_id: UUID, processing_cost, session: Session) -> Optional[Task]:

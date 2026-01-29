@@ -3,15 +3,14 @@
 Содержит функции, которые используют несколько репозиториев (CRUD).
 """
 
+from decimal import Decimal
 from typing import Optional
 from uuid import UUID
-from decimal import Decimal
-from sqlmodel import Session
 
 from models.task import Task, TaskStatus
 from models.transaction import Transaction, TransactionType
 from services.crud.balance import get_balance_by_user_id
-
+from sqlmodel import Session
 
 # Фиксированная стоимость создания задачи
 TASK_CREATION_COST = Decimal("10.00")

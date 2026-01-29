@@ -1,7 +1,9 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     # Database settings
@@ -16,6 +18,11 @@ class Settings(BaseSettings):
     APP_DESCRIPTION: Optional[str] = None
     DEBUG: Optional[bool] = None
     API_VERSION: Optional[str] = None
+
+    # JWT settings
+    JWT_SECRET: str = "jksgkfhgHJFksfDS"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24
     
     @property
     def DATABASE_URL_asyncpg(self):

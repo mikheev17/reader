@@ -3,12 +3,12 @@
 Содержит функции, которые используют несколько репозиториев (CRUD).
 """
 
-from typing import Tuple
 from decimal import Decimal
-from sqlmodel import Session
+from typing import Tuple
 
-from models.user import User
 from models.balance import Balance
+from models.user import User
+from sqlmodel import Session
 
 
 def create_user_with_balance(user: User, initial_balance: Decimal, session: Session) -> Tuple[User, Balance]:

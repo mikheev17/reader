@@ -2,14 +2,14 @@
 Task-related Data Transfer Objects.
 """
 
-from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
 
+from pydantic import BaseModel, Field
+
 
 class TaskCreateRequest(BaseModel):
-    """Schema for creating a prediction task."""
-    user_id: UUID = Field(..., description="ID пользователя")
+    """Schema for creating a prediction task. user_id берётся из JWT."""
     document_id: Optional[UUID] = Field(None, description="ID документа (опционально)")
 
 

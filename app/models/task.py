@@ -4,8 +4,10 @@
 
 from enum import Enum
 from typing import Optional, Any
-from sqlmodel import Field, Column, JSON
 from uuid import UUID
+
+from sqlmodel import Field, Column, JSON
+
 from .base import BaseSQLModel, Validatable
 from .validation import ValidationResult, ValidationError
 

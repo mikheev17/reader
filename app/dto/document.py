@@ -2,10 +2,10 @@
 Document-related Data Transfer Objects.
 """
 
-from pydantic import BaseModel, Field
 from typing import Optional, Literal
 from uuid import UUID
 
+from pydantic import BaseModel, Field
 
 DocumentTypeStr = Literal["txt", "epub"]
 

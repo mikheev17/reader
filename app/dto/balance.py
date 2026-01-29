@@ -2,14 +2,14 @@
 Balance-related Data Transfer Objects.
 """
 
-from pydantic import BaseModel, Field
-from uuid import UUID
 from decimal import Decimal
+from uuid import UUID
+
+from pydantic import BaseModel, Field
 
 
 class BalanceReplenishRequest(BaseModel):
-    """Schema for balance replenishment."""
-    user_id: UUID = Field(..., description="ID пользователя")
+    """Schema for balance replenishment. user_id берётся из JWT."""
     amount: Decimal = Field(..., gt=0, description="Сумма пополнения (должна быть больше 0)")
 
 
