@@ -4,9 +4,10 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from uuid import uuid4, UUID
-from sqlmodel import SQLModel, Field
 from typing import Optional
+from uuid import uuid4, UUID
+
+from sqlmodel import SQLModel, Field
 
 
 class Validatable(ABC):

@@ -1,0 +1,128 @@
+import logging
+from decimal import Decimal
+from typing import List, Dict
+
+from database.database import get_session
+from dto import UserSignupRequest, UserSigninRequest
+from fastapi import APIRouter, HTTPException, status, Depends
+from models import User
+from services.auth.auth import get_current_user, require_admin
+from services.auth.password_service import hash_password, verify_password
+from services.auth.token_service import create_access_token
+from services.crud import user as UserService
+from services.user_service import create_user_with_balance
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+user_route = APIRouter()
+
+
+@user_route.post(
+    '/signup',
+    response_model=Dict[str, str],
+    status_code=status.HTTP_201_CREATED,
+    summary="User Registration",
+    description="Register a new user with email and password")
+async def signup(data: UserSignupRequest, session=Depends(get_session)) -> Dict[str, str]:
+    """
+    Create new user account.
+
+    Args:
+        data: User registration data
+        session: Database session
+
+    Returns:
+        dict: Success message
+
+    Raises:
+        HTTPException: If user already exists
+    """
+    try:
+        if UserService.get_user_by_email(data.email, session):
+            logger.warning(f"Signup attempt with existing email: {data.email}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User with this email already exists"
+            )
+
+        user = User(
+            email=data.email,
+            password_hash=hash_password(data.password),
+        )
+        validation = user.validate()
+        if not validation.is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"validation_errors": [e.message for e in validation.errors]},
+            )
+        create_user_with_balance(user, Decimal('0.00'), session)
+        logger.info(f"New user registered: {data.email}")
+        return {"message": "User successfully registered"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error during signup: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error creating user"
+        )
+
+@user_route.post('/signin')
+async def signin(data: UserSigninRequest, session=Depends(get_session)) -> Dict[str, str]:
+    """
+    Authenticate existing user and return JWT access token.
+
+    Args:
+        data: User credentials
+        session: Database session
+
+    Returns:
+        dict: access_token (JWT) and token_type
+
+    Raises:
+        HTTPException: If authentication fails
+    """
+    user = UserService.get_user_by_email(data.email, session)
+    if user is None:
+        logger.warning(f"Login attempt with non-existent email: {data.email}")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
+    
+    if not verify_password(data.password, user.password_hash):
+        logger.warning(f"Failed login attempt for user: {data.email}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wrong credentials passed")
+    
+    access_token = create_access_token(user.id)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@user_route.get(
+    "/users",
+    response_model=List[User],
+    summary="Get all users",
+    response_description="List of all users"
+)
+async def get_all_users(
+    session=Depends(get_session),
+    current_user=Depends(require_admin),
+) -> List[User]:
+    """
+    Get list of all users. Requires valid JWT and ADMIN role.
+
+    Args:
+        session: Database session
+        current_user: Authenticated admin user (from JWT)
+
+    Returns:
+        List[UserResponse]: List of users
+    """
+    try:
+        users = UserService.get_all_users(session)
+        logger.info(f"Retrieved {len(users)} users")
+        return users
+    except Exception as e:
+        logger.error(f"Error retrieving users: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving users"
+        )

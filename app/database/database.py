@@ -5,6 +5,7 @@ from sqlmodel import Session
 
 from .config import get_settings
 
+
 # Импортируем все модели для регистрации в SQLModel.metadata
 
 def get_database_engine():

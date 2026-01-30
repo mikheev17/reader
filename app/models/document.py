@@ -2,11 +2,13 @@
 Модели документов и текстовых файлов.
 """
 
+from datetime import datetime
 from enum import Enum
 from typing import Optional
-from datetime import datetime
-from sqlmodel import Field, Column, Text
 from uuid import UUID
+
+from sqlmodel import Field, Column, Text
+
 from .base import BaseSQLModel, Validatable
 from .validation import ValidationResult, ValidationError
 
