@@ -19,18 +19,18 @@ class Settings(BaseSettings):
     DEBUG: Optional[bool] = None
     API_VERSION: Optional[str] = None
 
-    # JWT settings
-    JWT_SECRET: str = "jksgkfhgHJFksfDS"
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 60 * 24
+    # JWT settings (set via env)
+    JWT_SECRET: Optional[str] = None
+    JWT_ALGORITHM: Optional[str] = None
+    JWT_EXPIRE_MINUTES: Optional[int] = None
 
-    # RabbitMQ settings
-    RM_HOST: str = "rabbitmq"
-    RM_PORT: int = 5672
-    RM_USER: str = "rmuser"
-    RM_PASS: str = "rmpassword"
-    RM_VHOST: str = "/"
-    ML_QUEUE: str = "ml_task_queue"
+    # RabbitMQ settings (set via env)
+    RM_HOST: Optional[str] = None
+    RM_PORT: Optional[int] = None
+    RM_USER: Optional[str] = None
+    RM_PASS: Optional[str] = None
+    RM_VHOST: Optional[str] = None
+    ML_QUEUE: Optional[str] = None
 
     @property
     def DATABASE_URL_asyncpg(self):
@@ -53,6 +53,10 @@ class Settings(BaseSettings):
         """Validate critical configuration settings"""
         if not all([self.DB_HOST, self.DB_USER, self.DB_PASS, self.DB_NAME]):
             raise ValueError("Missing required database configuration")
+        if not all([self.JWT_SECRET, self.JWT_ALGORITHM, self.JWT_EXPIRE_MINUTES is not None]):
+            raise ValueError("Missing required JWT configuration (JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_MINUTES)")
+        if not all([self.RM_HOST, self.RM_PORT is not None, self.RM_USER, self.RM_PASS, self.RM_VHOST, self.ML_QUEUE]):
+            raise ValueError("Missing required RabbitMQ configuration (RM_HOST, RM_PORT, RM_USER, RM_PASS, RM_VHOST, ML_QUEUE)")
 
 @lru_cache()
 def get_settings() -> Settings:
