@@ -14,6 +14,9 @@ from services.auth.token_service import create_access_token
 from services.crud import user as UserService
 from services.user_service import create_user_with_balance
 
+from dto.auth.register_form import RegisterForm
+from starlette.responses import RedirectResponse
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -21,7 +24,7 @@ user_route = APIRouter()
 templates = Jinja2Templates(directory="views")
 
 @user_route.get("/signup", response_class=HTMLResponse)
-async def login_get(request: Request):
+async def signup_get(request: Request):
     context = {
         "request": request,
     }
@@ -30,16 +33,12 @@ async def login_get(request: Request):
 
 @user_route.post(
     '/signup',
-    response_model=Dict[str, str],
-    status_code=status.HTTP_201_CREATED,
-    summary="User Registration",
-    description="Register a new user with email and password")
-async def signup(data: UserSignupRequest, session=Depends(get_session)) -> Dict[str, str]:
+    response_class=HTMLResponse)
+async def signup(request: Request, session=Depends(get_session)):
     """
     Create new user account.
 
     Args:
-        data: User registration data
         session: Database session
 
     Returns:
@@ -47,18 +46,40 @@ async def signup(data: UserSignupRequest, session=Depends(get_session)) -> Dict[
 
     Raises:
         HTTPException: If user already exists
+        :param session:
+        :param request:
     """
+    form = RegisterForm(request)
+    await form.load_data()
+
+    if not await form.is_valid():
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "errors": form.errors,
+                "name": form.name,
+                "email": form.email,
+            },
+        )
     try:
-        if UserService.get_user_by_email(data.email, session):
-            logger.warning(f"Signup attempt with existing email: {data.email}")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="User with this email already exists"
+        if UserService.get_user_by_email(form.email, session):
+            logger.warning(f"Signup attempt with existing email: {form.email}")
+            return templates.TemplateResponse(
+                "register.html",
+                {
+                    "request": request,
+                    "errors": ["Пользователь уже существует"],
+                    "name": form.name,
+                    "email": form.email,
+                },
             )
 
         user = User(
-            email=data.email,
-            password_hash=hash_password(data.password),
+            username=form.name,
+            email=form.email,
+            password_hash=hash_password(form.password),
+            english_level="B1",
         )
         validation = user.validate()
         if not validation.is_valid:
@@ -66,9 +87,9 @@ async def signup(data: UserSignupRequest, session=Depends(get_session)) -> Dict[
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"validation_errors": [e.message for e in validation.errors]},
             )
-        create_user_with_balance(user, Decimal('0.00'), session)
-        logger.info(f"New user registered: {data.email}")
-        return {"message": "User successfully registered"}
+        create_user_with_balance(user, Decimal('100.00'), session)
+        logger.info(f"New user registered: {form.email}")
+        return RedirectResponse("/signin", status_code=302)
 
     except HTTPException:
         raise
