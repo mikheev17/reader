@@ -15,11 +15,12 @@ from .validation import ValidationResult, ValidationError
 class TaskStatus(str, Enum):
     """
     Статусы выполнения задачи ML модели.
+    Values match PostgreSQL taskstatus enum (names).
     """
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    PROCESSING = "PROCESSING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 class Task(BaseSQLModel, Validatable, table=True):

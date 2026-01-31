@@ -23,7 +23,15 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "jksgkfhgHJFksfDS"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24
-    
+
+    # RabbitMQ settings
+    RM_HOST: str = "rabbitmq"
+    RM_PORT: int = 5672
+    RM_USER: str = "rmuser"
+    RM_PASS: str = "rmpassword"
+    RM_VHOST: str = "/"
+    ML_QUEUE: str = "ml_task_queue"
+
     @property
     def DATABASE_URL_asyncpg(self):
         return f'postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
