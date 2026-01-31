@@ -1,9 +1,8 @@
-version: "3.8"
-services: 
+services:
   app:
     build: ./app/
-    image: reader-api:1.0.0
-    container_name: reader-api
+    image: ${API_IMAGE:-reader-api:1.0.0}
+    container_name: ${API_CONTAINER_NAME:-reader-api}
     restart: unless-stopped
     env_file:
     - ./app/.env
@@ -20,13 +19,44 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+  ml_worker:
+    build: ./ml_worker/
+    image: ${ML_WORKER_IMAGE:-reader-ml-worker:latest}
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    env_file:
+      - ./ml_worker/.env
+      - ./app/.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=gemma3:1b
+    volumes:
+      - ./ml_worker:/app
+    depends_on:
+      app:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - reader-network
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    volumes:
+      - ollama_volume:/root/.ollama
+      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
+    networks:
+      - reader-network
   web-proxy:
-    image: nginx:1.29.4-alpine
-    container_name: reader-nginx
+    image: ${NGINX_IMAGE:-nginx:1.29.4-alpine}
+    container_name: ${NGINX_CONTAINER_NAME:-reader-nginx}
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
     depends_on:
       app:
         condition: service_healthy
@@ -36,25 +66,28 @@ services:
     networks:
       - reader-network
   rabbitmq:
-    image: rabbitmq:4.1.7-management-alpine
-    container_name: rabbitmq
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4.1.7-management-alpine}
+    container_name: ${RABBITMQ_CONTAINER_NAME:-rabbitmq}
     restart: on-failure
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
     volumes:
       - rabbitmq_volume:/var/lib/rabbitmq
     networks:
       - reader-network
   database:
-    image: postgres:17
-    container_name: postgres
+    image: ${POSTGRES_IMAGE:-postgres:17}
+    container_name: ${POSTGRES_CONTAINER_NAME:-postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
     volumes:
       - postgres_volume:/var/lib/postgresql/data
     networks:
@@ -63,8 +96,9 @@ services:
 volumes:
   rabbitmq_volume:
   postgres_volume:
+  ollama_volume:
 
 networks:
   reader-network:
-    name: reader-network
+    name: ${READER_NETWORK_NAME:-reader-network}
     driver: bridge

@@ -15,6 +15,8 @@ from services.auth.auth import get_current_user
 from services.crud.document import create_document as crud_create_document
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
 
+from services.rm.rm import send_task
+
 logger = logging.getLogger(__name__)
 
 document_route = APIRouter()
@@ -130,6 +132,9 @@ async def create_document(
         )
 
     logger.info(f"Task created for document: task_id={task.id}, document_id={doc.id}")
+
+    send_task(str(task.id))
+    logger.info(f"Task sent to worker: task_id={task.id}")
 
     return CreateDocumentResponse(
         document=DocumentResponse(
