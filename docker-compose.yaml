@@ -28,11 +28,26 @@ services:
     env_file:
       - ./ml_worker/.env
       - ./app/.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=gemma3:1b
     volumes:
       - ./ml_worker:/app
     depends_on:
       app:
         condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - reader-network
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    volumes:
+      - ollama_volume:/root/.ollama
+      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
     networks:
       - reader-network
   web-proxy:
@@ -81,6 +96,7 @@ services:
 volumes:
   rabbitmq_volume:
   postgres_volume:
+  ollama_volume:
 
 networks:
   reader-network:
