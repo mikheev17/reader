@@ -4,7 +4,9 @@ from typing import List, Dict
 
 from database.database import get_session
 from dto import UserSignupRequest, UserSigninRequest
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from models import User
 from services.auth.auth import get_current_user, require_admin
 from services.auth.password_service import hash_password, verify_password
@@ -16,6 +18,14 @@ from services.user_service import create_user_with_balance
 logger = logging.getLogger(__name__)
 
 user_route = APIRouter()
+templates = Jinja2Templates(directory="views")
+
+@user_route.get("/signup", response_class=HTMLResponse)
+async def login_get(request: Request):
+    context = {
+        "request": request,
+    }
+    return templates.TemplateResponse("register.html", context)
 
 
 @user_route.post(
@@ -68,6 +78,14 @@ async def signup(data: UserSignupRequest, session=Depends(get_session)) -> Dict[
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error creating user"
         )
+
+@user_route.get("/signin", response_class=HTMLResponse)
+async def login_get(request: Request):
+    context = {
+        "request": request,
+    }
+    return templates.TemplateResponse("login.html", context)
+
 
 @user_route.post('/signin')
 async def signin(data: UserSigninRequest, session=Depends(get_session)) -> Dict[str, str]:

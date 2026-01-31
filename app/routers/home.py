@@ -1,26 +1,21 @@
 from typing import Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+
 
 home_route = APIRouter()
+templates = Jinja2Templates(directory="views")
 
-@home_route.get(
-    "/", 
-    response_model=Dict[str, str],
-    summary="Root endpoint",
-    description="Returns a welcome message"
-)
-async def index() -> str:
-    """
-    Root endpoint returning welcome message.
-
-    Returns:
-        Dict[str, str]: Welcome message
-    """
-    try:
-        return {"message": "Welcome to Event Planner API"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Internal server error")
+@home_route.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    user = None
+    context = {
+        "login": user,
+        "request": request
+    }
+    return templates.TemplateResponse("index.html", context)
 
 
 @home_route.get(
