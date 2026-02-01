@@ -160,6 +160,16 @@ async def signin(request: Request, session=Depends(get_session)):
     )
     return response
 
+
+@user_route.get("/logout")
+async def logout():
+    """Clear auth cookie and redirect to signin."""
+    response = RedirectResponse("/signin", status_code=302)
+    cookie_name = getattr(settings, "COOKIE_NAME", "access_token")
+    response.delete_cookie(key=cookie_name)
+    return response
+
+
 @user_route.get(
     "/users",
     response_model=List[User],
