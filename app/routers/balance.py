@@ -9,7 +9,7 @@ from dto import BalanceReplenishRequest, BalanceResponse
 from fastapi import APIRouter, HTTPException, status, Depends
 from models import Balance
 from models import User
-from services.auth.auth import get_current_user
+from services.auth.auth import get_current_user, get_current_user_cookie_or_bearer
 from services.crud.balance import get_balance_by_user_id, replenish_balance
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ async def get_balance(
 async def replenish_balance_endpoint(
     data: BalanceReplenishRequest,
     session=Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_cookie_or_bearer),
 ) -> BalanceResponse:
     """
     Пополнить баланс текущего пользователя. Требуется JWT.

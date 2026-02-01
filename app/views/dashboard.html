@@ -22,17 +22,17 @@
                         <div class="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center mb-4">
                             <i data-feather="user" class="w-12 h-12 text-blue-600"></i>
                         </div>
-                        <h2 class="text-xl font-bold text-gray-800" id="user-name">Иван Иванов</h2>
-                        <p class="text-gray-600" id="user-email">ivan@example.com</p>
+                        <h2 class="text-xl font-bold text-gray-800" id="user-name">{{ name }}</h2>
+                        <p class="text-gray-600" id="user-email">{{ email }}</p>
                     </div>
 
                     <div class="space-y-4">
                         <div class="flex justify-between items-center">
                             <span class="text-gray-700">Баланс:</span>
-                            <span class="font-bold" id="user-balance">500 ₽</span>
+                            <span class="font-bold" id="user-balance">{{ balance|round(2) }} ₽</span>
                         </div>
                         
-                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                        <button id="replenish-balance-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
                             <i data-feather="plus" class="w-4 h-4 mr-2"></i>
                             Пополнить баланс
                         </button>
@@ -113,6 +113,33 @@
 
     <script>
         feather.replace();
+
+        // Replenish balance: POST /balance/replenish with amount 100, update #user-balance
+        const replenishBtn = document.getElementById('replenish-balance-btn');
+        const userBalanceEl = document.getElementById('user-balance');
+        if (replenishBtn && userBalanceEl) {
+            replenishBtn.addEventListener('click', async () => {
+                replenishBtn.disabled = true;
+                try {
+                    const res = await fetch('/balance/replenish', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ amount: 100 }),
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.detail || 'Не удалось пополнить баланс');
+                        return;
+                    }
+                    const data = await res.json();
+                    const newBalance = Number(data.balance);
+                    userBalanceEl.textContent = newBalance.toFixed(2) + ' ₽';
+                } finally {
+                    replenishBtn.disabled = false;
+                }
+            });
+        }
         
         // File upload handling
         const fileInput = document.getElementById('file-upload');
