@@ -8,7 +8,7 @@ from typing import Optional
 from uuid import UUID
 
 from models.task import Task, TaskStatus
-from models.transaction import Transaction, TransactionType
+from services.balance_service import withdraw as balance_withdraw
 from services.crud.balance import get_balance_by_user_id
 from sqlmodel import Session
 
@@ -45,9 +45,6 @@ def create_task_with_balance_deduction(
         return None
 
     try:
-        balance.withdraw(task_cost)
-        session.add(balance)
-
         task = Task(
             user_id=user_id,
             document_id=document_id,
@@ -56,13 +53,12 @@ def create_task_with_balance_deduction(
         session.add(task)
         session.flush()
 
-        transaction = Transaction(
-            user_id=user_id,
-            transaction_type=TransactionType.WITHDRAWAL,
-            amount=task_cost,
-            task_id=task.id
+        updated_balance = balance_withdraw(
+            user_id, task_cost, session, task_id=task.id, commit=False
         )
-        session.add(transaction)
+        if not updated_balance:
+            session.rollback()
+            return None
 
         session.commit()
         session.refresh(task)

@@ -25,7 +25,8 @@ from sqlmodel import Session
 from database.database import get_database_engine
 from models import User, Balance, TextDocument, DocumentType, TaskStatus
 from services.crud.user import get_user_by_email, create_user
-from services.crud.balance import get_balance_by_user_id, create_balance, replenish_balance
+from services.crud.balance import get_balance_by_user_id, create_balance
+from services.balance_service import replenish as balance_replenish
 from services.crud.document import create_document
 from services.document_service import send_document_for_processing
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
@@ -71,8 +72,8 @@ def test() -> None:
 
         # 3) Пополнение баланса (необходимо для создания задачи)
         replenish_amount = Decimal("100.00")
-        success = replenish_balance(user.id, replenish_amount, session)
-        assert success, "Пополнение баланса должно быть успешным"
+        balance = balance_replenish(user.id, replenish_amount, session)
+        assert balance is not None, "Пополнение баланса должно быть успешным"
         bal = get_balance_by_user_id(user.id, session)
         print(f"✓ Пополнение баланса: +{replenish_amount} -> баланс: {bal.balance}")
 

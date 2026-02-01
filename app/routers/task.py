@@ -7,12 +7,12 @@ from typing import List
 from uuid import UUID
 
 from database.database import get_session
-from dto import TaskCreateRequest, TaskResponse, PredictionResponse
+from dto import TaskCreateRequest, TaskResponse, PredictionResponse, PredictionHistoryItem
 from fastapi import APIRouter, HTTPException, status, Depends
 from models import User
 from services.auth.auth import get_current_user, get_current_user_cookie_or_bearer
 from services.crud.task import get_tasks_by_user_id, get_task_by_id
-from services.crud.prediction import get_predictions_by_task_id
+from services.crud.prediction import get_predictions_by_task_id, get_predictions_for_user
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
 
 logger = logging.getLogger(__name__)
@@ -171,6 +171,42 @@ async def get_tasks_history(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ошибка при получении истории задач"
+        )
+
+
+@task_route.get(
+    "/predictions",
+    response_model=List[PredictionHistoryItem],
+    summary="История предсказаний",
+    description="Возвращает список предсказаний текущего пользователя",
+)
+async def get_predictions_history(
+    session=Depends(get_session),
+    current_user: User = Depends(get_current_user_cookie_or_bearer),
+) -> List[PredictionHistoryItem]:
+    """Получить историю предсказаний текущего пользователя."""
+    try:
+        rows = get_predictions_for_user(current_user.id, session)
+        result = []
+        for pred, task, doc in rows:
+            data = pred.prediction_data or {}
+            words = data.get("words") or []
+            result.append(
+                PredictionHistoryItem(
+                    task_id=task.id,
+                    document_id=task.document_id,
+                    document_name=doc.filename if doc else None,
+                    created_at=pred.created_at.isoformat(),
+                    english_level=data.get("english_level"),
+                    words_count=len(words),
+                )
+            )
+        return result
+    except Exception as e:
+        logger.error(f"Error retrieving predictions: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Ошибка при получении истории предсказаний"
         )
 
 

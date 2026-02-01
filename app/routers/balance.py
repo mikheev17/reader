@@ -7,10 +7,10 @@ import logging
 from database.database import get_session
 from dto import BalanceReplenishRequest, BalanceResponse
 from fastapi import APIRouter, HTTPException, status, Depends
-from models import Balance
 from models import User
 from services.auth.auth import get_current_user, get_current_user_cookie_or_bearer
-from services.crud.balance import get_balance_by_user_id, replenish_balance
+from services.balance_service import replenish as balance_replenish
+from services.crud.balance import get_balance_by_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -95,22 +95,16 @@ async def replenish_balance_endpoint(
         HTTPException: Если баланс не найден или произошла ошибка
     """
     try:
-        success = replenish_balance(current_user.id, data.amount, session)
+        balance = balance_replenish(current_user.id, data.amount, session)
 
-        if not success:
+        if balance is None:
             logger.warning(f"Failed to replenish balance for user {current_user.id}")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Баланс не найден для данного пользователя"
             )
 
-        # Получаем обновленный баланс
-        balance = get_balance_by_user_id(current_user.id, session)
-        if balance is None:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Ошибка при получении обновленного баланса"
-            )
+        # balance уже обновлён из balance_replenish
 
         logger.info(f"Balance replenished for user {current_user.id}: +{data.amount}, new balance: {balance.balance}")
         return BalanceResponse(
