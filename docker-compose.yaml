@@ -10,7 +10,7 @@ services:
       - ./app:/app
     depends_on:
       - database
-#      - rabbitmq
+      - rabbitmq
     networks:
       - reader-network
     healthcheck:
@@ -19,37 +19,37 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-#  ml_worker:
-#    build: ./ml_worker/
-#    image: ${ML_WORKER_IMAGE:-reader-ml-worker:latest}
-#    restart: unless-stopped
-#    deploy:
-#      replicas: 2
-#    env_file:
-#      - ./ml_worker/.env
-#      - ./app/.env
-#    environment:
-#      - OLLAMA_HOST=http://ollama:11434
-#      - OLLAMA_MODEL=gemma3:1b
-#    volumes:
-#      - ./ml_worker:/app
-#    depends_on:
-#      app:
-#        condition: service_healthy
-#      ollama:
-#        condition: service_started
-#    networks:
-#      - reader-network
-#  ollama:
-#    image: ollama/ollama:latest
-#    container_name: ollama
-#    restart: unless-stopped
-#    entrypoint: ["/bin/sh", "/entrypoint.sh"]
-#    volumes:
-#      - ollama_volume:/root/.ollama
-#      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
-#    networks:
-#      - reader-network
+  ml_worker:
+    build: ./ml_worker/
+    image: ${ML_WORKER_IMAGE:-reader-ml-worker:latest}
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    env_file:
+      - ./ml_worker/.env
+      - ./app/.env
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=gemma3:1b
+    volumes:
+      - ./ml_worker:/app
+    depends_on:
+      app:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    networks:
+      - reader-network
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    volumes:
+      - ollama_volume:/root/.ollama
+      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
+    networks:
+      - reader-network
   web-proxy:
     image: ${NGINX_IMAGE:-nginx:1.29.4-alpine}
     container_name: ${NGINX_CONTAINER_NAME:-reader-nginx}
@@ -65,20 +65,20 @@ services:
       # - ./nginx/ssl:/etc/nginx/ssl
     networks:
       - reader-network
-#  rabbitmq:
-#    image: ${RABBITMQ_IMAGE:-rabbitmq:4.1.7-management-alpine}
-#    container_name: ${RABBITMQ_CONTAINER_NAME:-rabbitmq}
-#    restart: on-failure
-#    ports:
-#      - "${RABBITMQ_AMQP_PORT:-5672}:5672"
-#      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
-#    environment:
-#      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
-#      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
-#    volumes:
-#      - rabbitmq_volume:/var/lib/rabbitmq
-#    networks:
-#      - reader-network
+  rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq:4.1.7-management-alpine}
+    container_name: ${RABBITMQ_CONTAINER_NAME:-rabbitmq}
+    restart: on-failure
+    ports:
+      - "${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS}
+    volumes:
+      - rabbitmq_volume:/var/lib/rabbitmq
+    networks:
+      - reader-network
   database:
     image: ${POSTGRES_IMAGE:-postgres:17}
     container_name: ${POSTGRES_CONTAINER_NAME:-postgres}
@@ -94,9 +94,9 @@ services:
       - reader-network
 
 volumes:
-#  rabbitmq_volume:
+  rabbitmq_volume:
   postgres_volume:
-#  ollama_volume:
+  ollama_volume:
 
 networks:
   reader-network:

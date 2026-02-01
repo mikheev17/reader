@@ -156,6 +156,41 @@
             }
         });
 
+        // Process document: POST /documents with selected file
+        processBtn.addEventListener('click', async () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+
+            processBtn.disabled = true;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const res = await fetch('/documents', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    const msg = err.detail || (typeof err.detail === 'object' ? JSON.stringify(err.detail) : 'Не удалось обработать документ');
+                    alert(msg);
+                    return;
+                }
+
+                const data = await res.json();
+                alert(`Документ отправлен на обработку. ID задачи: ${data.task_id}`);
+                fileInput.value = '';
+                fileNameDisplay.textContent = 'Файл не выбран';
+                processBtn.disabled = true;
+            } catch (e) {
+                alert('Ошибка сети: ' + (e.message || 'не удалось отправить запрос'));
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
         // Modal handling
         const modal = document.getElementById('document-modal');
         const closeModalBtn = document.getElementById('close-modal');

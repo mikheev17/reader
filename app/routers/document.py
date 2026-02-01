@@ -11,7 +11,7 @@ from dto import CreateDocumentResponse, DocumentResponse
 from fastapi import APIRouter, HTTPException, status, Depends, File, Form, UploadFile
 from models import TextDocument, DocumentType
 from models import User
-from services.auth.auth import get_current_user
+from services.auth.auth import get_current_user_cookie_or_bearer
 from services.crud.document import create_document as crud_create_document
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
 
@@ -51,7 +51,7 @@ def _document_type_from_filename(filename: Optional[str]) -> DocumentType:
 )
 async def create_document(
     session=Depends(get_session),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user_cookie_or_bearer),
     file: UploadFile = File(..., description="Файл документа (бинарная отправка)"),
     document_type: Optional[str] = Form(None, description="Тип документа: txt или epub (опционально, по умолчанию из расширения файла)"),
 ) -> CreateDocumentResponse:
