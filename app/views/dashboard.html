@@ -60,9 +60,9 @@
                     </button>
                 </div>
 
-                <!-- Documents List -->
+                <!-- Tasks and Documents List -->
                 <div class="bg-white rounded-xl shadow-md p-6">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Мои документы</h2>
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Задачи и документы</h2>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -74,9 +74,8 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200" id="documents-list">
-                                <!-- Documents will be loaded here -->
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">Нет загруженных документов</td>
+                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">Загрузка…</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -99,7 +98,7 @@
                         <!-- Document content will be loaded here -->
                     </div>
                 </div>
-<div class="border-t border-gray-200 px-6 py-4 flex justify-end">
+                <div class="border-t border-gray-200 px-6 py-4 flex justify-end">
                     <button id="download-result" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition duration-300">
                         <i data-feather="download" class="w-4 h-4 mr-2"></i>
                         Скачать результат
@@ -184,6 +183,7 @@
                 fileInput.value = '';
                 fileNameDisplay.textContent = 'Файл не выбран';
                 processBtn.disabled = true;
+                loadTasksAndDocuments();
             } catch (e) {
                 alert('Ошибка сети: ' + (e.message || 'не удалось отправить запрос'));
             } finally {
@@ -199,139 +199,146 @@
             modal.classList.add('hidden');
         });
 
-        // Sample document data (would be loaded from API in real app)
-        const sampleDocuments = [
-            {
-                id: 1,
-                name: "Гарри Поттер глава 1.txt",
-                date: "2023-05-15",
-                status: "Обработан",
-                content: {
-                    original: "Harry Potter was a highly unusual boy in many ways. For one thing, he hated the summer holidays more than any other time of year. For another, he really wanted to do his homework but was forced to do it in secret, in the dead of night. And he also happened to be a wizard.",
-                    translated: "Гарри Поттер был весьма необычным мальчиком во многих отношениях. Во-первых, он ненавидел летние каникулы больше, чем любое другое время года. Во-вторых, он очень хотел делать домашнюю работу, но был вынужден делать это тайком, в глухую ночь. И, кроме того, он оказался волшебником."
-                }
-            },
-            {
-                id: 2,
-                name: "Война и мир отрывок.txt",
-                date: "2023-05-10",
-                status: "Обработан",
-                content: {
-                    original: "All happy families are alike; each unhappy family is unhappy in its own way. Everything was in confusion in the Oblonskys' house. The wife had discovered that the husband was carrying on an intrigue with a French girl, who had been a governess in their family.",
-                    translated: "Все счастливые семьи похожи друг на друга, каждая несчастливая семья несчастлива по-своему. В доме Облонских всё смешалось. Жена узнала, что муж был в связи с бывшею в их доме француженкою-гувернанткой."
-                }
-            }
-        ];
-// Render documents list
-        const documentsList = document.getElementById('documents-list');
-        
-        function renderDocumentsList() {
-            if (sampleDocuments.length === 0) {
-                documentsList.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="px-6 py-4 text-center text-gray-500">Нет загруженных документов</td>
-                    </tr>
-                `;
+        document.getElementById('download-result').addEventListener('click', () => {
+            if (!currentModalPrediction || !currentModalPrediction.words || !currentModalPrediction.words.length) {
+                alert('Нет результата для скачивания');
                 return;
             }
+            const lines = currentModalPrediction.words.map(item => `${item.word || ''}\t${item.translation || ''}`);
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'translation-result.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
 
-            documentsList.innerHTML = sampleDocuments.map(doc => `
-                <tr class="hover:bg-gray-50 cursor-pointer" data-id="${doc.id}">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <i data-feather="file-text" class="w-5 h-5 text-gray-400 mr-2"></i>
-                            <span class="text-sm font-medium text-gray-900">${doc.name}</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${doc.date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            ${doc.status}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button class="text-blue-600 hover:text-blue-900 view-doc">Просмотр</button>
-                    </td>
-                </tr>
-            `).join('');
+        const documentsList = document.getElementById('documents-list');
+        const STATUS_LABELS = { PENDING: 'В очереди', PROCESSING: 'Обрабатывается', COMPLETED: 'Обработан', FAILED: 'Ошибка' };
+        const STATUS_CLASSES = {
+            PENDING: 'bg-gray-100 text-gray-800',
+            PROCESSING: 'bg-blue-100 text-blue-800',
+            COMPLETED: 'bg-green-100 text-green-800',
+            FAILED: 'bg-red-100 text-red-800'
+        };
 
-            // Add event listeners to view buttons
-            document.querySelectorAll('.view-doc').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const docId = btn.closest('tr').getAttribute('data-id');
-                    viewDocument(docId);
+        async function loadTasksAndDocuments() {
+            documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Загрузка…</td></tr>';
+            try {
+                const [tasksRes, docsRes] = await Promise.all([
+                    fetch('/tasks', { credentials: 'include' }),
+                    fetch('/documents', { credentials: 'include' })
+                ]);
+                if (!tasksRes.ok || !docsRes.ok) {
+                    documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Не удалось загрузить данные</td></tr>';
+                    return;
+                }
+                const tasks = await tasksRes.json();
+                const documents = await docsRes.json();
+                const docById = Object.fromEntries((documents || []).map(d => [d.id, d]));
+
+                if (!tasks || tasks.length === 0) {
+                    documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Нет задач и документов</td></tr>';
+                    return;
+                }
+
+                documentsList.innerHTML = tasks.map(task => {
+                    const doc = task.document_id ? docById[task.document_id] : null;
+                    const name = doc ? (doc.filename || 'Документ') : '—';
+                    const date = task.created_at ? new Date(task.created_at).toLocaleDateString('ru-RU') : '—';
+                    const statusLabel = STATUS_LABELS[task.status] || task.status;
+                    const statusClass = STATUS_CLASSES[task.status] || 'bg-gray-100 text-gray-800';
+                    return `
+                        <tr class="hover:bg-gray-50 cursor-pointer" data-task-id="${task.id}" data-document-id="${task.document_id || ''}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <i data-feather="file-text" class="w-5 h-5 text-gray-400 mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-900">${escapeHtml(name)}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(date)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${escapeHtml(statusLabel)}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-600 hover:text-blue-900 view-doc">Просмотр</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.querySelectorAll('.view-doc').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const row = btn.closest('tr');
+                        const docId = row.getAttribute('data-document-id');
+                        if (docId) viewDocument(docId, row.getAttribute('data-task-id'));
+                    });
                 });
-            });
-
-            // Add event listeners to table rows
-            document.querySelectorAll('#documents-list tr[data-id]').forEach(row => {
-                row.addEventListener('click', () => {
-                    const docId = row.getAttribute('data-id');
-                    viewDocument(docId);
+                document.querySelectorAll('#documents-list tr[data-task-id]').forEach(row => {
+                    row.addEventListener('click', (e) => {
+                        if (e.target.closest('.view-doc')) return;
+                        const docId = row.getAttribute('data-document-id');
+                        if (docId) viewDocument(docId, row.getAttribute('data-task-id'));
+                    });
                 });
-            });
-
-            feather.replace();
+                feather.replace();
+            } catch (e) {
+                documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+            }
         }
 
-        function viewDocument(docId) {
-            const doc = sampleDocuments.find(d => d.id == docId);
-            if (!doc) return;
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
 
-            document.getElementById('modal-title').textContent = doc.name;
-            const contentDiv = document.getElementById('document-content');
-            // Split text into sentences
-            const sentences = doc.content.original.split(/(?<=[.!?])\s+/);
-            const translations = doc.content.translated.split(/(?<=[.!?])\s+/);
-            
-            // Show every 3rd sentence as "difficult" (for demo)
-            let contentHTML = '';
-            sentences.forEach((sentence, i) => {
-                const isDifficult = i % 3 === 0; // Demo logic - mark every 3rd sentence as difficult
-                
-                contentHTML += `
-                    <div class="bg-white p-4 rounded-lg border ${isDifficult ? 'border-blue-200 bg-blue-50' : 'border-gray-200'}">
-                        <div class="flex justify-between items-start mb-2">
-                            <p class="text-gray-800">${sentence}</p>
-                            ${isDifficult ? `
-                                <button class="text-blue-600 hover:text-blue-800 text-sm font-medium show-translation" data-index="${i}">
-                                    <i data-feather="chevron-down" class="w-4 h-4"></i> Показать перевод
-                                </button>
-                            ` : ''}
-                        </div>
-                        <div class="translation hidden bg-gray-50 p-3 rounded mt-2" data-index="${i}">
-                            <p class="text-gray-700">${translations[i] || 'Перевод недоступен'}</p>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            contentDiv.innerHTML = contentHTML;
-            
-            // Add event listeners for translation toggles
-            document.querySelectorAll('.show-translation').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const index = e.target.getAttribute('data-index');
-                    const translation = document.querySelector(`.translation[data-index="${index}"]`);
-                    const icon = e.target.querySelector('i');
-                    
-                    translation.classList.toggle('hidden');
-                    if (translation.classList.contains('hidden')) {
-                        icon.setAttribute('data-feather', 'chevron-down');
-                        e.target.textContent = ' Показать перевод';
+        let currentModalPrediction = null;
+
+        async function viewDocument(documentId, taskId) {
+            try {
+                const docRes = await fetch(`/documents/${documentId}`, { credentials: 'include' });
+                if (!docRes.ok) {
+                    alert('Документ не найден');
+                    return;
+                }
+                const doc = await docRes.json();
+                document.getElementById('modal-title').textContent = (doc.filename || 'Документ') + ' — перевод слов';
+
+                const contentDiv = document.getElementById('document-content');
+                currentModalPrediction = null;
+
+                const predRes = await fetch(`/tasks/${taskId}/prediction`, { credentials: 'include' });
+                if (predRes.ok) {
+                    const pred = await predRes.json();
+                    currentModalPrediction = pred.prediction_data;
+                    const words = currentModalPrediction.words || [];
+                    const englishLevel = currentModalPrediction.english_level || '';
+
+                    if (words.length) {
+                        contentDiv.innerHTML = (englishLevel ? `<p class="text-sm text-gray-500 mb-4">Уровень: ${escapeHtml(englishLevel)}</p>` : '') + words.map(item => `
+                            <div class="flex items-center justify-between p-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100">
+                                <span class="font-medium text-gray-900">${escapeHtml(item.word || '')}</span>
+                                <span class="text-gray-600">→</span>
+                                <span class="text-gray-700">${escapeHtml(item.translation || '')}</span>
+                            </div>
+                        `).join('');
                     } else {
-                        icon.setAttribute('data-feather', 'chevron-up');
-                        e.target.textContent = ' Скрыть перевод';
+                        contentDiv.innerHTML = '<p class="text-gray-500">Нет переведённых слов</p>';
                     }
-                    feather.replace();
-                });
-            });
-modal.classList.remove('hidden');
+                } else {
+                    currentModalPrediction = null;
+                    contentDiv.innerHTML = '<p class="text-gray-500">Результат обработки ещё не готов. Дождитесь завершения задачи.</p>';
+                }
+                modal.classList.remove('hidden');
+            } catch (e) {
+                alert('Не удалось загрузить документ');
+            }
         }
 
-        // Initial render
-        renderDocumentsList();
+        loadTasksAndDocuments();
     </script>
     <script src="script.js"></script>
 </body>

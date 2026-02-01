@@ -5,14 +5,15 @@
 import logging
 import re
 from typing import Optional
+from uuid import UUID
 
 from database.database import get_session
-from dto import CreateDocumentResponse, DocumentResponse
+from dto import CreateDocumentResponse, DocumentResponse, DocumentDetailResponse
 from fastapi import APIRouter, HTTPException, status, Depends, File, Form, UploadFile
 from models import TextDocument, DocumentType
 from models import User
 from services.auth.auth import get_current_user_cookie_or_bearer
-from services.crud.document import create_document as crud_create_document
+from services.crud.document import create_document as crud_create_document, get_documents_by_user_id, get_document_by_id
 from services.task_service import create_task_with_balance_deduction, TASK_CREATION_COST
 
 from services.rm.rm import send_task
@@ -149,4 +150,57 @@ async def create_document(
         ),
         task_id=task.id,
         task_status=task.status.value,
+    )
+
+
+@document_route.get(
+    "/documents",
+    response_model=list[DocumentResponse],
+    summary="Список документов пользователя",
+    description="Возвращает список документов текущего пользователя",
+)
+async def list_documents(
+    session=Depends(get_session),
+    current_user: User = Depends(get_current_user_cookie_or_bearer),
+) -> list[DocumentResponse]:
+    docs = get_documents_by_user_id(current_user.id, session)
+    return [
+        DocumentResponse(
+            id=doc.id,
+            user_id=doc.user_id,
+            document_type=doc.document_type.value,
+            filename=doc.filename,
+            is_processed=doc.is_processed,
+            content_length=len(doc.content),
+            created_at=doc.created_at.isoformat(),
+            updated_at=doc.updated_at.isoformat(),
+        )
+        for doc in docs
+    ]
+
+
+@document_route.get(
+    "/documents/{document_id}",
+    response_model=DocumentDetailResponse,
+    summary="Получить документ по ID",
+    description="Возвращает документ с содержимым (только свой документ)",
+)
+async def get_document(
+    document_id: UUID,
+    session=Depends(get_session),
+    current_user: User = Depends(get_current_user_cookie_or_bearer),
+) -> DocumentDetailResponse:
+    doc = get_document_by_id(document_id, session)
+    if doc is None or doc.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Документ не найден")
+    return DocumentDetailResponse(
+        id=doc.id,
+        user_id=doc.user_id,
+        document_type=doc.document_type.value,
+        filename=doc.filename,
+        is_processed=doc.is_processed,
+        content_length=len(doc.content),
+        created_at=doc.created_at.isoformat(),
+        updated_at=doc.updated_at.isoformat(),
+        content=doc.content,
     )

@@ -25,3 +25,8 @@ class TaskResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PredictionResponse(BaseModel):
+    """Schema for prediction (word translations) response."""
+    prediction_data: dict = Field(..., description="words list and english_level")

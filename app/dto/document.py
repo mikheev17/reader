@@ -33,6 +33,11 @@ class DocumentResponse(BaseModel):
         from_attributes = True
 
 
+class DocumentDetailResponse(DocumentResponse):
+    """Schema for document detail response (includes content)."""
+    content: str = Field(..., description="Содержимое документа")
+
+
 class CreateDocumentResponse(BaseModel):
     """Schema for create_document response (document + task)."""
     document: DocumentResponse
