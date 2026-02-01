@@ -25,7 +25,6 @@ class RegisterForm:
         self.terms = form.get("terms")
 
     async def is_valid(self) -> bool:
-        # Validation (очень мягкая, как в LoginForm)
         if not self.name or len(self.name.strip()) == 0:
             self.errors.append("Имя обязательно.")
 

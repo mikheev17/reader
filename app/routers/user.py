@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal
 from typing import List, Dict
 
+from database.config import get_settings
 from database.database import get_session
 from dto import UserSignupRequest, UserSigninRequest
 from fastapi import APIRouter, HTTPException, status, Depends, Request
@@ -17,8 +18,11 @@ from services.user_service import create_user_with_balance
 from dto.auth.register_form import RegisterForm
 from starlette.responses import RedirectResponse
 
+from dto.auth.login_form import LoginForm
+
 # Configure logging
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 user_route = APIRouter()
 templates = Jinja2Templates(directory="views")
@@ -101,7 +105,7 @@ async def signup(request: Request, session=Depends(get_session)):
         )
 
 @user_route.get("/signin", response_class=HTMLResponse)
-async def login_get(request: Request):
+async def signin_get(request: Request):
     context = {
         "request": request,
     }
@@ -109,31 +113,52 @@ async def login_get(request: Request):
 
 
 @user_route.post('/signin')
-async def signin(data: UserSigninRequest, session=Depends(get_session)) -> Dict[str, str]:
+async def signin(request: Request, session=Depends(get_session)):
     """
     Authenticate existing user and return JWT access token.
 
     Args:
-        data: User credentials
+        request: Request with form data
         session: Database session
 
     Returns:
-        dict: access_token (JWT) and token_type
-
-    Raises:
-        HTTPException: If authentication fails
+        Redirect to dashboard on success, or login template with errors
     """
-    user = UserService.get_user_by_email(data.email, session)
+    form = LoginForm(request)
+    await form.load_data()
+
+    if not await form.is_valid():
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "errors": form.errors, "email": form.email or ""},
+        )
+
+    user = UserService.get_user_by_email(form.email, session)
     if user is None:
-        logger.warning(f"Login attempt with non-existent email: {data.email}")
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
-    
-    if not verify_password(data.password, user.password_hash):
-        logger.warning(f"Failed login attempt for user: {data.email}")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Wrong credentials passed")
-    
+        logger.warning(f"Login attempt with non-existent email: {form.email}")
+        form.errors.append("Неверный email или пароль")
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "errors": form.errors, "email": form.email or ""},
+        )
+
+    if not verify_password(form.password, user.password_hash):
+        logger.warning(f"Failed login attempt for user: {form.email}")
+        form.errors.append("Неверный email или пароль")
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "errors": form.errors, "email": form.email or ""},
+        )
+
     access_token = create_access_token(user.id)
-    return {"access_token": access_token, "token_type": "bearer"}
+    response = RedirectResponse("/dashboard", status_code=302)
+    cookie_name = getattr(settings, "COOKIE_NAME", "access_token")
+    response.set_cookie(
+        key=cookie_name,
+        value=f"Bearer {access_token}",
+        httponly=True,
+    )
+    return response
 
 @user_route.get(
     "/users",
