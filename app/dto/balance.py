@@ -3,9 +3,24 @@ Balance-related Data Transfer Objects.
 """
 
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+
+class TransactionResponse(BaseModel):
+    """Schema for transaction in list."""
+    id: UUID
+    user_id: UUID
+    transaction_type: str
+    amount: Decimal
+    task_id: Optional[UUID] = None
+    created_at: str
+    updated_at: str
+
+    class Config:
+        from_attributes = True
 
 
 class BalanceReplenishRequest(BaseModel):

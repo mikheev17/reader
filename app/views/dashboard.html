@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет | Читалка</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="theme.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="components/navbar.js"></script>
+    <script src="components/footer.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <custom-navbar></custom-navbar>
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- User Profile Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sticky top-4">
+                    <div class="flex flex-col items-center mb-6">
+                        <div class="w-24 h-24 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-4">
+                            <i data-feather="user" class="w-12 h-12 text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100" id="user-name">{{ name }}</h2>
+                        <p class="text-gray-600 dark:text-gray-400" id="user-email">{{ email }}</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700 dark:text-gray-300">Баланс:</span>
+                            <span class="font-bold text-gray-900 dark:text-gray-100" id="user-balance">{{ balance|round(2) }} ₽</span>
+                        </div>
+                        
+                        <button id="replenish-balance-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                            <i data-feather="plus" class="w-4 h-4 mr-2"></i>
+                            Пополнить баланс
+                        </button>
+                        <button id="transactions-history-btn" class="w-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                            <i data-feather="list" class="w-4 h-4 mr-2"></i>
+                            История транзакций
+                        </button>
+                        <a href="/logout" class="w-full bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
+                            <i data-feather="log-out" class="w-4 h-4 mr-2"></i>
+                            Выйти
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- File Upload Section -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Загрузить документ</h2>
+                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+                        <i data-feather="upload" class="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4"></i>
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">Перетащите сюда файл .txt или нажмите для выбора</p>
+                        <input type="file" id="file-upload" class="hidden" accept=".txt">
+                        <label for="file-upload" class="inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg cursor-pointer transition duration-300">
+                            Выбрать файл
+                        </label>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2" id="file-name">Файл не выбран</p>
+                    </div>
+                    <button id="process-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition duration-300 disabled:opacity-50" disabled>
+                        <i data-feather="cpu" class="w-5 h-5 mr-2 inline"></i>
+                        Обработать документ
+                    </button>
+                </div>
+
+                <!-- Tasks and Documents List -->
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">Задачи и документы</h2>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Название</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Дата</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Статус</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600" id="documents-list">
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prediction History Section -->
+        <div class="mt-10 bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4">История предсказаний</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                    <thead class="bg-gray-50 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Документ</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Дата</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Уровень</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Слов</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600" id="predictions-history-list">
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Transactions History Modal -->
+        <div id="transactions-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden mx-4">
+                <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-600 px-6 py-4">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">История транзакций</h3>
+                    <button id="close-transactions-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <i data-feather="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[70vh]">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Дата</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Тип</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Сумма</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600" id="transactions-list">
+                            <tr>
+                                <td colspan="3" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Preview Modal -->
+        <div id="document-modal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+                <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-600 px-6 py-4">
+                    <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100" id="modal-title">Результат обработки</h3>
+                    <button id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <i data-feather="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[70vh]">
+                    <div class="flex flex-col gap-6" id="document-content">
+                        <!-- Document content will be loaded here -->
+                    </div>
+                </div>
+                <div class="border-t border-gray-200 dark:border-gray-600 px-6 py-4 flex justify-end">
+                    <button id="download-result" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-lg transition duration-300">
+                        <i data-feather="download" class="w-4 h-4 mr-2"></i>
+                        Скачать результат
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <custom-footer></custom-footer>
+
+    <script>
+        feather.replace();
+
+        // Replenish balance: POST /balance/replenish with amount 100, update #user-balance
+        const replenishBtn = document.getElementById('replenish-balance-btn');
+        const userBalanceEl = document.getElementById('user-balance');
+        if (replenishBtn && userBalanceEl) {
+            replenishBtn.addEventListener('click', async () => {
+                replenishBtn.disabled = true;
+                try {
+                    const res = await fetch('/balance/replenish', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ amount: 100 }),
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.detail || 'Не удалось пополнить баланс');
+                        return;
+                    }
+                    const data = await res.json();
+                    const newBalance = Number(data.balance);
+                    userBalanceEl.textContent = newBalance.toFixed(2) + ' ₽';
+                } finally {
+                    replenishBtn.disabled = false;
+                }
+            });
+        }
+        
+        // File upload handling
+        const fileInput = document.getElementById('file-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        const processBtn = document.getElementById('process-btn');
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+                processBtn.disabled = false;
+            } else {
+                fileNameDisplay.textContent = 'Файл не выбран';
+                processBtn.disabled = true;
+            }
+        });
+
+        // Process document: POST /documents with selected file
+        processBtn.addEventListener('click', async () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
+
+            processBtn.disabled = true;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const res = await fetch('/documents', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    const msg = err.detail || (typeof err.detail === 'object' ? JSON.stringify(err.detail) : 'Не удалось обработать документ');
+                    alert(msg);
+                    return;
+                }
+
+                const data = await res.json();
+                alert(`Документ отправлен на обработку. ID задачи: ${data.task_id}`);
+                fileInput.value = '';
+                fileNameDisplay.textContent = 'Файл не выбран';
+                processBtn.disabled = true;
+                loadTasksAndDocuments();
+                loadPredictionsHistory();
+            } catch (e) {
+                alert('Ошибка сети: ' + (e.message || 'не удалось отправить запрос'));
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // Modal handling
+        const modal = document.getElementById('document-modal');
+        const closeModalBtn = document.getElementById('close-modal');
+        
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // Transactions modal
+        const transactionsModal = document.getElementById('transactions-modal');
+        const transactionsHistoryBtn = document.getElementById('transactions-history-btn');
+        const closeTransactionsModalBtn = document.getElementById('close-transactions-modal');
+
+        transactionsHistoryBtn.addEventListener('click', () => {
+            transactionsModal.classList.remove('hidden');
+            loadTransactions();
+            feather.replace();
+        });
+        closeTransactionsModalBtn.addEventListener('click', () => transactionsModal.classList.add('hidden'));
+        transactionsModal.addEventListener('click', (e) => {
+            if (e.target === transactionsModal) transactionsModal.classList.add('hidden');
+        });
+
+        document.getElementById('download-result').addEventListener('click', () => {
+            if (!currentModalPrediction || !currentModalPrediction.words || !currentModalPrediction.words.length) {
+                alert('Нет результата для скачивания');
+                return;
+            }
+            const lines = currentModalPrediction.words.map(item => `${item.word || ''}\t${item.translation || ''}`);
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'translation-result.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        });
+
+        const documentsList = document.getElementById('documents-list');
+        const STATUS_LABELS = { PENDING: 'В очереди', PROCESSING: 'Обрабатывается', COMPLETED: 'Обработан', FAILED: 'Ошибка' };
+        const STATUS_CLASSES = {
+            PENDING: 'bg-gray-100 dark:bg-gray-600 text-gray-800 dark:text-gray-200',
+            PROCESSING: 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200',
+            COMPLETED: 'bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200',
+            FAILED: 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200'
+        };
+
+        async function loadTasksAndDocuments() {
+            documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td></tr>';
+            try {
+                const [tasksRes, docsRes] = await Promise.all([
+                    fetch('/tasks', { credentials: 'include' }),
+                    fetch('/documents', { credentials: 'include' })
+                ]);
+                if (!tasksRes.ok || !docsRes.ok) {
+                    documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Не удалось загрузить данные</td></tr>';
+                    return;
+                }
+                const tasks = await tasksRes.json();
+                const documents = await docsRes.json();
+                const docById = Object.fromEntries((documents || []).map(d => [d.id, d]));
+
+                if (!tasks || tasks.length === 0) {
+                    documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Нет задач и документов</td></tr>';
+                    return;
+                }
+
+                documentsList.innerHTML = tasks.map(task => {
+                    const doc = task.document_id ? docById[task.document_id] : null;
+                    const name = doc ? (doc.filename || 'Документ') : '—';
+                    const date = task.created_at ? new Date(task.created_at).toLocaleDateString('ru-RU') : '—';
+                    const statusLabel = STATUS_LABELS[task.status] || task.status;
+                    const statusClass = STATUS_CLASSES[task.status] || 'bg-gray-100 text-gray-800';
+                    return `
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" data-task-id="${task.id}" data-document-id="${task.document_id || ''}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <i data-feather="file-text" class="w-5 h-5 text-gray-400 dark:text-gray-500 mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(name)}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(date)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${escapeHtml(statusLabel)}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 view-doc">Просмотр</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.querySelectorAll('.view-doc').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const row = btn.closest('tr');
+                        const docId = row.getAttribute('data-document-id');
+                        if (docId) viewDocument(docId, row.getAttribute('data-task-id'));
+                    });
+                });
+                document.querySelectorAll('#documents-list tr[data-task-id]').forEach(row => {
+                    row.addEventListener('click', (e) => {
+                        if (e.target.closest('.view-doc')) return;
+                        const docId = row.getAttribute('data-document-id');
+                        if (docId) viewDocument(docId, row.getAttribute('data-task-id'));
+                    });
+                });
+                feather.replace();
+            } catch (e) {
+                documentsList.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            const div = document.createElement('div');
+            div.textContent = s;
+            return div.innerHTML;
+        }
+
+        let currentModalPrediction = null;
+
+        async function viewDocument(documentId, taskId) {
+            try {
+                const docRes = await fetch(`/documents/${documentId}`, { credentials: 'include' });
+                if (!docRes.ok) {
+                    alert('Документ не найден');
+                    return;
+                }
+                const doc = await docRes.json();
+                document.getElementById('modal-title').textContent = (doc.filename || 'Документ') + ' — перевод слов';
+
+                const contentDiv = document.getElementById('document-content');
+                currentModalPrediction = null;
+
+                const predRes = await fetch(`/tasks/${taskId}/prediction`, { credentials: 'include' });
+                if (predRes.ok) {
+                    const pred = await predRes.json();
+                    currentModalPrediction = pred.prediction_data;
+                    const words = currentModalPrediction.words || [];
+                    const englishLevel = currentModalPrediction.english_level || '';
+
+                    if (words.length) {
+                        contentDiv.innerHTML = (englishLevel ? `<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Уровень: ${escapeHtml(englishLevel)}</p>` : '') + words.map(item => `
+                            <div class="flex items-center justify-between p-4 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                <span class="font-medium text-gray-900 dark:text-gray-100">${escapeHtml(item.word || '')}</span>
+                                <span class="text-gray-600 dark:text-gray-400">→</span>
+                                <span class="text-gray-700 dark:text-gray-300">${escapeHtml(item.translation || '')}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        contentDiv.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Нет переведённых слов</p>';
+                    }
+                } else {
+                    currentModalPrediction = null;
+                    contentDiv.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Результат обработки ещё не готов. Дождитесь завершения задачи.</p>';
+                }
+                modal.classList.remove('hidden');
+            } catch (e) {
+                alert('Не удалось загрузить документ');
+            }
+        }
+
+        const TRANSACTION_TYPE_LABELS = { replenishment: 'Пополнение', withdrawal: 'Списание' };
+
+        async function loadPredictionsHistory() {
+            const listEl = document.getElementById('predictions-history-list');
+            if (!listEl) return;
+            listEl.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td></tr>';
+            try {
+                const res = await fetch('/predictions', { credentials: 'include' });
+                if (!res.ok) {
+                    listEl.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Не удалось загрузить историю предсказаний</td></tr>';
+                    return;
+                }
+                const predictions = await res.json();
+                if (!predictions || predictions.length === 0) {
+                    listEl.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Нет предсказаний</td></tr>';
+                    return;
+                }
+                listEl.innerHTML = predictions.map(p => {
+                    const docName = p.document_name || '—';
+                    const date = p.created_at ? new Date(p.created_at).toLocaleString('ru-RU') : '—';
+                    const level = p.english_level || '—';
+                    const wordsCount = p.words_count ?? 0;
+                    const docId = p.document_id || '';
+                    const taskId = p.task_id || '';
+                    return `
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <i data-feather="file-text" class="w-5 h-5 text-gray-400 dark:text-gray-500 mr-2"></i>
+                                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100">${escapeHtml(docName)}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(date)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(level)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${wordsCount}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300 view-prediction" data-document-id="${escapeHtml(docId)}" data-task-id="${escapeHtml(taskId)}">Просмотр</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                listEl.querySelectorAll('.view-prediction').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const docId = btn.getAttribute('data-document-id');
+                        const taskId = btn.getAttribute('data-task-id');
+                        if (docId && taskId) viewDocument(docId, taskId);
+                    });
+                });
+                feather.replace();
+            } catch (e) {
+                listEl.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        async function loadTransactions() {
+            const listEl = document.getElementById('transactions-list');
+            if (!listEl) return;
+            listEl.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Загрузка…</td></tr>';
+            try {
+                const res = await fetch('/transactions', { credentials: 'include' });
+                if (!res.ok) {
+                    listEl.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Не удалось загрузить транзакции</td></tr>';
+                    return;
+                }
+                const transactions = await res.json();
+                if (!transactions || transactions.length === 0) {
+                    listEl.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500 dark:text-gray-400">Нет транзакций</td></tr>';
+                    return;
+                }
+                listEl.innerHTML = transactions.map(t => {
+                    const date = t.created_at ? new Date(t.created_at).toLocaleString('ru-RU') : '—';
+                    const typeLabel = TRANSACTION_TYPE_LABELS[t.transaction_type] || t.transaction_type;
+                    const amount = Number(t.amount);
+                    const isReplenishment = t.transaction_type === 'replenishment';
+                    const amountClass = isReplenishment ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+                    const sign = isReplenishment ? '+' : '−';
+                    return `
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(date)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${escapeHtml(typeLabel)}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${amountClass}">${sign} ${Math.abs(amount).toFixed(2)} ₽</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (e) {
+                listEl.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        loadTasksAndDocuments();
+        loadPredictionsHistory();
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

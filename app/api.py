@@ -11,6 +11,7 @@ from database.database import get_session, init_db
 from routers import user as user_router
 from routers import task as task_router
 from routers import balance as balance_router
+from routers import transaction as transaction_router
 from routers import document as document_router
 from routers import home as home_router
 
@@ -71,6 +72,7 @@ def create_application() -> FastAPI:
     app.include_router(user_router.user_route, tags=["users"])
     app.include_router(task_router.task_route, tags=["tasks"])
     app.include_router(balance_router.balance_route, tags=["balance"])
+    app.include_router(transaction_router.transaction_route, tags=["transactions"])
     app.include_router(document_router.document_route, tags=["documents"])
 
     return app

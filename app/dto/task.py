@@ -25,3 +25,18 @@ class TaskResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PredictionResponse(BaseModel):
+    """Schema for prediction (word translations) response."""
+    prediction_data: dict = Field(..., description="words list and english_level")
+
+
+class PredictionHistoryItem(BaseModel):
+    """Элемент истории предсказаний пользователя."""
+    task_id: UUID
+    document_id: Optional[UUID]
+    document_name: Optional[str]
+    created_at: str
+    english_level: Optional[str] = None
+    words_count: int = 0

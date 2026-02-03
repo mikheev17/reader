@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: Optional[str] = None
     JWT_EXPIRE_MINUTES: Optional[int] = None
 
+    # Cookie auth (name of the cookie holding the Bearer token)
+    COOKIE_NAME: str = "access_token"
+
     # RabbitMQ settings (set via env)
     RM_HOST: Optional[str] = None
     RM_PORT: Optional[int] = None
