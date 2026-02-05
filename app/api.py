@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from init_standard_data import init_data
 from database.config import get_settings
-from database.database import get_session, init_db
+from database.database import init_db
 from logging_config import setup_logging
 from routers import user as user_router
 from routers import task as task_router
