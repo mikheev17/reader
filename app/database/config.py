@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     APP_DESCRIPTION: Optional[str] = None
     DEBUG: Optional[bool] = None
     API_VERSION: Optional[str] = None
+    LOG_LEVEL: str = "INFO"
 
     # JWT settings (set via env)
     JWT_SECRET: Optional[str] = None

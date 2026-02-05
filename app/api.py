@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from init_standard_data import init_data
 from database.config import get_settings
 from database.database import get_session, init_db
+from logging_config import setup_logging
 from routers import user as user_router
 from routers import task as task_router
 from routers import balance as balance_router
@@ -15,14 +16,9 @@ from routers import transaction as transaction_router
 from routers import document as document_router
 from routers import home as home_router
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
 settings = get_settings()
+setup_logging(getattr(settings, "LOG_LEVEL", "INFO"))
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -80,7 +76,7 @@ def create_application() -> FastAPI:
 app = create_application()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    setup_logging("DEBUG")
     uvicorn.run(
         'api:app',
         host='0.0.0.0',

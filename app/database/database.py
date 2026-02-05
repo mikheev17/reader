@@ -1,8 +1,11 @@
+import logging
 from typing import Generator
 
 from sqlmodel import Session, SQLModel, create_engine
 
 from .config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def get_database_engine():
@@ -27,5 +30,7 @@ def get_session() -> Generator[Session, None, None]:
 
 def init_db(drop_all: bool = False) -> None:
     if drop_all:
+        logger.info("Dropping all database tables")
         SQLModel.metadata.drop_all(engine)
+    logger.info("Creating database tables")
     SQLModel.metadata.create_all(engine)

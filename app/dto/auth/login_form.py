@@ -1,5 +1,10 @@
+import logging
+from typing import List, Optional
+
 from fastapi import Request
-from typing import Optional, List
+
+logger = logging.getLogger(__name__)
+
 
 class LoginForm:
     def __init__(self, request: Request):
@@ -21,7 +26,7 @@ class LoginForm:
         if not self.password or not len(self.password) >= 1:
             self.errors.append("A valid password is required")
         if not self.errors:
-            print('is valid')
+            logger.debug("Login form is valid")
             return True
-        print('is not valid')
+        logger.debug("Login form is not valid: %s", self.errors)
         return False

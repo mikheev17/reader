@@ -1,6 +1,10 @@
+import logging
+
 import pika
 
 from database.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _connection_params() -> pika.ConnectionParameters:
@@ -27,6 +31,5 @@ def send_task(message: str) -> None:
         routing_key=queue_name,
         body=message
     )
-
-    # Закрытие соединения
+    logger.info("Message sent to queue: queue=%s, body_length=%s", queue_name, len(message))
     connection.close()
