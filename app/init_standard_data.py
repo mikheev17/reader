@@ -10,6 +10,7 @@ from __future__ import annotations
 - в файле app/.env должны быть корректно заполнены переменные подключения к БД
 """
 
+import logging
 from decimal import Decimal
 
 from sqlmodel import Session, select
@@ -18,28 +19,27 @@ from database.database import get_database_engine, init_db
 from models.user import User, UserRole
 from services.user_service import create_user_with_balance
 
+logger = logging.getLogger(__name__)
+
 
 def init_data():
     """
     Инициализировать базу данных стандартными данными.
     """
-    # Инициализируем схему БД
-    print("Инициализация схемы базы данных...")
+    logger.info("Инициализация схемы базы данных...")
     init_db(drop_all=True)
-    print("Схема базы данных создана.")
+    logger.info("Схема базы данных создана.")
 
-    # Создаем сессию
     engine = get_database_engine()
 
     with Session(engine) as session:
-        # Проверяем, есть ли уже данные
         statement = select(User)
         existing_users = session.exec(statement).first()
         if existing_users:
-            print("База данных уже содержит данные. Пропускаем инициализацию.")
+            logger.info("База данных уже содержит данные. Пропускаем инициализацию.")
             return
 
-        print("Создание стандартных данных...")
+        logger.info("Создание стандартных данных...")
 
         # Создаем пользователей с балансами
         user_data = [
@@ -72,5 +72,5 @@ def init_data():
             created_user, created_balance = create_user_with_balance(user, initial_balance, session)
             users.append(created_user)
 
-        print(f"Создано {len(users)} пользователей с балансами.")
-        print("\nИнициализация базы данных завершена успешно!")
+        logger.info("Создано %s пользователей с балансами.", len(users))
+        logger.info("Инициализация базы данных завершена успешно.")

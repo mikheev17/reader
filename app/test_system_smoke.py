@@ -16,6 +16,7 @@ from __future__ import annotations
 - в файле app/.env должны быть корректно заполнены переменные подключения к БД
 """
 
+import logging
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
@@ -23,6 +24,8 @@ from uuid import UUID
 from sqlmodel import Session
 
 from database.database import get_database_engine
+
+logger = logging.getLogger(__name__)
 from models import User, Balance, TextDocument, DocumentType, TaskStatus
 from services.crud.user import get_user_by_email, create_user
 from services.crud.balance import get_balance_by_user_id, create_balance
@@ -59,25 +62,21 @@ def ensure_balance(user_id: UUID, session: Session) -> Balance:
 def test() -> None:
     engine = get_database_engine()
     with Session(engine) as session:
-        print("=== SMOKE TEST START ===")
-        print("Проверка success path: пользователь -> документ -> задача -> предсказание\n")
+        logger.info("=== SMOKE TEST START ===")
+        logger.info("Проверка success path: пользователь -> документ -> задача -> предсказание")
 
-        # 1) Создание пользователя
         user = create_test_user(session)
-        print(f"✓ Создан пользователь: id={user.id}, email={user.email}")
+        logger.info("Создан пользователь: id=%s, email=%s", user.id, user.email)
 
-        # 2) Создание/получение баланса
         bal = ensure_balance(user.id, session)
-        print(f"✓ Начальный баланс: {bal.balance}")
+        logger.info("Начальный баланс: %s", bal.balance)
 
-        # 3) Пополнение баланса (необходимо для создания задачи)
         replenish_amount = Decimal("100.00")
         balance = balance_replenish(user.id, replenish_amount, session)
         assert balance is not None, "Пополнение баланса должно быть успешным"
         bal = get_balance_by_user_id(user.id, session)
-        print(f"✓ Пополнение баланса: +{replenish_amount} -> баланс: {bal.balance}")
+        logger.info("Пополнение баланса: +%s -> баланс: %s", replenish_amount, bal.balance)
 
-        # 4) Загрузка документа
         document_content = "This is a test document for smoke testing. It contains some English text to process."
         document = TextDocument(
             user_id=user.id,
@@ -86,23 +85,20 @@ def test() -> None:
             filename="test_document.txt"
         )
         document = create_document(document, session)
-        print(f"✓ Загружен документ: id={document.id}, filename={document.filename}, content_length={len(document.content)}")
+        logger.info("Загружен документ: id=%s, filename=%s, content_length=%s", document.id, document.filename, len(document.content))
 
-        # 5) Создание задачи на обработку документа
         processing_cost = Decimal("10.00")
         task = send_document_for_processing(document.id, processing_cost, session)
         assert task is not None, "Задача должна быть создана успешно"
         assert task.status == TaskStatus.PENDING, f"Статус задачи должен быть PENDING, получен {task.status}"
-        print(f"✓ Создана задача: id={task.id}, status={task.status}, document_id={task.document_id}")
-        
-        # Проверяем, что баланс был списан
+        logger.info("Создана задача: id=%s, status=%s, document_id=%s", task.id, task.status, task.document_id)
+
         bal = get_balance_by_user_id(user.id, session)
         expected_balance = (replenish_amount - processing_cost).quantize(Decimal("0.01"))
         actual_balance = Decimal(bal.balance).quantize(Decimal("0.01"))
         assert actual_balance == expected_balance, f"Ожидался баланс {expected_balance}, фактически {actual_balance}"
-        print(f"✓ Баланс после списания: {bal.balance}")
+        logger.info("Баланс после списания: %s", bal.balance)
 
-        # 6) Получение предсказания (завершение задачи)
         prediction_data = {
             "phrases": [
                 {"english": "smoke testing", "russian": "Смоук-тестирование"},
@@ -111,50 +107,44 @@ def test() -> None:
         }
         prediction = complete_task_with_prediction(task.id, prediction_data, session)
         assert prediction is not None, "Предсказание должно быть создано успешно"
-        print(f"✓ Создано предсказание: id={prediction.id}, task_id={prediction.task_id}")
-        print(f"  Данные предсказания: {prediction.prediction_data}")
+        logger.info("Создано предсказание: id=%s, task_id=%s", prediction.id, prediction.task_id)
+        logger.info("Данные предсказания: %s", prediction.prediction_data)
 
-        # Проверяем, что задача завершена
         task = get_task_by_id(task.id, session)
         assert task.status == TaskStatus.COMPLETED, f"Статус задачи должен быть COMPLETED, получен {task.status}"
-        print(f"✓ Задача завершена: status={task.status}")
+        logger.info("Задача завершена: status=%s", task.status)
 
-        # Проверяем, что документ помечен как обработанный
         from services.crud.document import get_document_by_id
         document = get_document_by_id(document.id, session)
         assert document.is_processed, "Документ должен быть помечен как обработанный"
-        print(f"✓ Документ помечен как обработанный: is_processed={document.is_processed}")
+        logger.info("Документ помечен как обработанный: is_processed=%s", document.is_processed)
 
-        # Проверяем получение предсказания по task_id
         predictions = get_predictions_by_task_id(task.id, session)
         assert len(predictions) > 0, "Должно быть хотя бы одно предсказание для задачи"
-        print(f"✓ Получено предсказаний для задачи: {len(predictions)}")
+        logger.info("Получено предсказаний для задачи: %s", len(predictions))
 
-        # 7) Тест прямого создания задачи через task_service с автоматическим списанием баланса
-        print("\n--- Тест прямого создания задачи с автоматическим списанием баланса ---")
+        logger.info("--- Тест прямого создания задачи с автоматическим списанием баланса ---")
         bal_before = get_balance_by_user_id(user.id, session)
         balance_before = Decimal(bal_before.balance)
-        print(f"Баланс перед созданием задачи: {balance_before}")
-        
-        # Создаем задачу напрямую через task_service
+        logger.info("Баланс перед созданием задачи: %s", balance_before)
+
         task2 = create_task_with_balance_deduction(
             user_id=user.id,
             session=session,
             document_id=None,
-            task_cost=None  # Используется фиксированная стоимость TASK_CREATION_COST
+            task_cost=None
         )
         assert task2 is not None, "Задача должна быть создана успешно"
         assert task2.status == TaskStatus.PENDING, f"Статус задачи должен быть PENDING, получен {task2.status}"
-        print(f"✓ Создана задача напрямую: id={task2.id}, status={task2.status}")
-        
-        # Проверяем, что баланс был списан на фиксированную сумму
+        logger.info("Создана задача напрямую: id=%s, status=%s", task2.id, task2.status)
+
         bal_after = get_balance_by_user_id(user.id, session)
         balance_after = Decimal(bal_after.balance)
         expected_balance_after = (balance_before - TASK_CREATION_COST).quantize(Decimal("0.01"))
         actual_balance_after = balance_after.quantize(Decimal("0.01"))
         assert actual_balance_after == expected_balance_after, \
             f"Ожидался баланс {expected_balance_after}, фактически {actual_balance_after}"
-        print(f"✓ Баланс после создания задачи: {balance_after} (списано {TASK_CREATION_COST})")
+        logger.info("Баланс после создания задачи: %s (списано %s)", balance_after, TASK_CREATION_COST)
 
-        print("\n=== SMOKE TEST OK ===")
-        print("Все этапы success path выполнены успешно!")
+        logger.info("=== SMOKE TEST OK ===")
+        logger.info("Все этапы success path выполнены успешно!")

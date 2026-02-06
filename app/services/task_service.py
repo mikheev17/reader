@@ -3,6 +3,7 @@
 Содержит функции, которые используют несколько репозиториев (CRUD).
 """
 
+import logging
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -11,6 +12,8 @@ from models.task import Task, TaskStatus
 from services.balance_service import withdraw as balance_withdraw
 from services.crud.balance import get_balance_by_user_id
 from sqlmodel import Session
+
+logger = logging.getLogger(__name__)
 
 # Фиксированная стоимость создания задачи
 TASK_CREATION_COST = Decimal("10.00")
@@ -42,6 +45,7 @@ def create_task_with_balance_deduction(
 
     balance = get_balance_by_user_id(user_id, session)
     if not balance or not balance.has_sufficient_balance(task_cost):
+        logger.warning("Task not created: insufficient balance for user_id=%s, required=%s", user_id, task_cost)
         return None
 
     try:
@@ -62,7 +66,9 @@ def create_task_with_balance_deduction(
 
         session.commit()
         session.refresh(task)
+        logger.info("Task created: task_id=%s, user_id=%s, document_id=%s, cost=%s", task.id, user_id, document_id, task_cost)
         return task
     except Exception:
+        logger.exception("Failed to create task for user_id=%s", user_id)
         session.rollback()
         raise
